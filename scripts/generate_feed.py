@@ -127,7 +127,7 @@ def pick_next_topic(posts, category, topics):
 def generate_article(category, topic, local_now):
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key: raise RuntimeError("Missing OPENAI_API_KEY repository secret.")
-   prompt = f"""
+    prompt = f"""
 Write an original, polished, SEO-friendly real estate blog article for {SITE_NAME}.
 
 Category: {category}
