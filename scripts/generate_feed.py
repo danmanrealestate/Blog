@@ -772,6 +772,15 @@ def write_index(posts):
 
 
 def write_feed(posts):
+    """
+    GoDaddy-friendly RSS feed.
+
+    Important:
+    - Do NOT place raw <img> HTML inside description/content because GoDaddy may display
+      the tag as text in the blog preview.
+    - Keep RSS preview text clean and clickable.
+    - Full article pages still include photos, sidebar, share buttons, SEO, schema, and full content.
+    """
     posts = sorted(posts, key=lambda p: p.get("date", ""), reverse=True)[:MAX_POSTS_IN_FEED]
 
     rss = ET.Element(
@@ -789,13 +798,17 @@ def write_feed(posts):
     add_text(
         channel,
         "description",
-        "Residential, commercial, leasing, property management, and investment real estate insights from Dan Marovich.",
+        "Residential and commercial real estate articles from Dan Marovich, RE/MAX Ace Realty.",
     )
     add_text(channel, "language", "en-us")
     add_text(channel, "lastBuildDate", format_datetime(datetime.now(timezone.utc), usegmt=True))
 
     for post in posts:
         item = ET.SubElement(channel, "item")
+
+        category_label = post.get("category", "Real Estate")
+        read_time = str(post.get("reading_time", estimate_reading_time(post.get("content", ""))))
+        clean_description = build_feed_preview(post)
 
         add_text(item, "title", post["title"])
         add_text(item, "link", post["link"])
@@ -804,23 +817,31 @@ def write_feed(posts):
         guid.set("isPermaLink", "false")
 
         add_text(item, "pubDate", format_datetime(datetime.fromisoformat(post["date"]), usegmt=True))
-        add_text(item, "category", post["category"])
-        add_text(item, "description", post["description"])
+        add_text(item, "category", category_label)
 
-        enclosure = ET.SubElement(item, "enclosure")
-        enclosure.set("url", post["image_url"])
-        enclosure.set("type", "image/jpeg")
+        # Plain text only. This is what GoDaddy usually uses for the visible blog preview.
+        add_text(item, "description", clean_description)
 
-        content_html = f"""
-<img src="{escape_attr(post["image_url"])}" alt="{escape_attr(post["title"])}" style="width:100%;max-width:900px;height:auto;" />
-<p><strong>{escape_html(post["description"])}</strong></p>
-{post["content"]}
-<p><strong>Contact Dan Marovich, RE/MAX Ace Realty:</strong> <a href="{CONTACT_PHONE_TEL}">{CONTACT_PHONE}</a> · <a href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a></p>
-<p><a href="{post["link"]}">Read the full article</a></p>
+        # Keep content clean and text-focused so GoDaddy does not print raw HTML tags in preview.
+        content_text = f"""
+{post["title"]}
+
+{clean_description}
+
+Category: {category_label}
+Estimated reading time: {read_time} minutes
+
+Read the complete article:
+{post["link"]}
+
+Contact Dan Marovich, RE/MAX Ace Realty:
+Phone: {CONTACT_PHONE}
+Email: {CONTACT_EMAIL}
+Website: {MAIN_WEBSITE}
 """
 
         content_node = ET.SubElement(item, "content:encoded")
-        content_node.text = f"__CDATA_START__{content_html}__CDATA_END__"
+        content_node.text = f"__CDATA_START__{content_text}__CDATA_END__"
 
     rough = ET.tostring(rss, encoding="utf-8")
     pretty = minidom.parseString(rough).toprettyxml(indent="  ", encoding="UTF-8").decode("utf-8")
@@ -830,6 +851,49 @@ def write_feed(posts):
 
     with open(FEED_FILE, "w", encoding="utf-8") as file:
         file.write(pretty)
+
+
+def build_feed_preview(post):
+    """
+    Creates a clean, attractive GoDaddy preview without raw HTML.
+    """
+    category = post.get("category", "Real Estate")
+    description = strip_html(post.get("description", ""))
+    content_text = strip_html(post.get("content", ""))
+
+    if len(description) < 120 and content_text:
+        extra = content_text[:260].strip()
+        description = f"{description} {extra}".strip()
+
+    description = re.sub(r"\s+", " ", description).strip()
+
+    if len(description) > 420:
+        description = description[:417].rsplit(" ", 1)[0] + "..."
+
+    if "Commercial" in category:
+        lead = "Commercial Real Estate Insight:"
+    elif "Residential" in category:
+        lead = "Residential Real Estate Insight:"
+    else:
+        lead = "Real Estate Insight:"
+
+    return (
+        f"{lead} {description} "
+        f"Click Continue Reading for the full article with photos, local guidance, key takeaways, and next steps from Dan Marovich."
+    )
+
+
+def strip_html(value):
+    """
+    Converts article HTML to plain text for clean RSS previews.
+    """
+    text = str(value or "")
+    text = re.sub(r"<script.*?</script>", " ", text, flags=re.S | re.I)
+    text = re.sub(r"<style.*?</style>", " ", text, flags=re.S | re.I)
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = html.unescape(text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
 
 
 def add_text(parent, tag, text):
