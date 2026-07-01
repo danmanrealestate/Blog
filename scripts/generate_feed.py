@@ -127,7 +127,7 @@ def pick_next_topic(posts, category, topics):
 def generate_article(category, topic, local_now):
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key: raise RuntimeError("Missing OPENAI_API_KEY repository secret.")
-    prompt = f\"\"\"
+   prompt = f"""
 Write an original, polished, SEO-friendly real estate blog article for {SITE_NAME}.
 
 Category: {category}
@@ -151,7 +151,7 @@ Requirements:
 - Do not invent exact market statistics, interest rates, sales numbers, tax rules, or legal advice.
 - Include internal links to <a href="{MAIN_WEBSITE}">DMSellsRE.com</a> and <a href="{MAIN_WEBSITE}/contact">contact Dan Marovich</a>.
 - End with a contact line for Dan Marovich at {CONTACT_EMAIL}.
-\"\"\"
+"""
     payload = {"model": OPENAI_MODEL, "input": prompt, "text":{"format":{"type":"json_object"}}}
     r = requests.post("https://api.openai.com/v1/responses",
         headers={"Authorization": f"Bearer {api_key}", "Content-Type":"application/json"},
