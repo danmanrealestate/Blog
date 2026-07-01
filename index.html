@@ -9,6 +9,7 @@
     :root {
       --navy: #061b36;
       --red: #b5121b;
+      --gold: #c7a45a;
       --light: #f7f9fc;
       --text: #172033;
       --muted: #667085;
@@ -50,6 +51,40 @@
       margin: auto;
     }
 
+    .featured-post {
+      display: grid;
+      grid-template-columns: 52% 1fr;
+      gap: 34px;
+      align-items: center;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 24px;
+      margin-bottom: 42px;
+      box-shadow: var(--shadow);
+    }
+
+    .featured-image {
+      display: block;
+      border-radius: 18px;
+      overflow: hidden;
+      background: #eef2f7;
+    }
+
+    .featured-image img {
+      width: 100%;
+      height: 390px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .featured-body h2 {
+      margin: 0 0 14px;
+      font-size: clamp(2rem, 3.6vw, 3.2rem);
+      line-height: 1.04;
+      color: var(--navy);
+    }
+
     .grid {
       display: grid;
       gap: 34px;
@@ -80,7 +115,8 @@
       transition: transform .25s ease;
     }
 
-    .card:hover img {
+    .card:hover img,
+    .featured-post:hover img {
       transform: scale(1.03);
     }
 
@@ -150,6 +186,41 @@
       font-weight: 900;
     }
 
+    .marketing-tools {
+      margin-top: 50px;
+      background: var(--light);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 28px;
+    }
+
+    .marketing-tools h2 {
+      margin-top: 0;
+      font-size: 2rem;
+    }
+
+    .social-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+    }
+
+    .social-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px;
+    }
+
+    .social-card h3 {
+      margin-top: 0;
+      color: var(--navy);
+    }
+
+    .social-card p {
+      font-size: .96rem;
+    }
+
     .empty {
       background: var(--light);
       border-radius: 20px;
@@ -157,14 +228,20 @@
       border: 1px solid var(--border);
     }
 
-    @media (max-width: 800px) {
+    @media (max-width: 900px) {
+      .featured-post,
       .card {
         grid-template-columns: 1fr;
         gap: 18px;
       }
 
+      .featured-image img,
       .card img {
-        height: 260px;
+        height: 270px;
+      }
+
+      .social-grid {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -177,13 +254,12 @@
   </header>
 
   <main>
-    <div class="grid">
-      
-        <article class="card">
-          <a class="image-link" href="posts/2026-06-30-exploring-commercial-real-estate-opportunities-in-chester-county.html">
+    
+        <section class="featured-post">
+          <a class="featured-image" href="posts/2026-06-30-exploring-commercial-real-estate-opportunities-in-chester-county.html">
             <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&amp;fit=crop&amp;w=1800&amp;q=80" alt="Exploring Commercial Real Estate Opportunities in Chester County">
           </a>
-          <div class="body">
+          <div class="featured-body">
             <div class="topline">
               <span class="date">July 01, 2026</span>
               <span class="badge commercial">Commercial</span>
@@ -191,10 +267,13 @@
             <h2><a href="posts/2026-06-30-exploring-commercial-real-estate-opportunities-in-chester-county.html">Exploring Commercial Real Estate Opportunities in Chester County</a></h2>
             <p>Discover promising commercial real estate opportunities in Chester County, PA, with insights for investors, business owners, and landlords.</p>
             <div class="card-meta">4 min read · By Dan Marovich · RE/MAX Ace Realty</div>
-            <a class="read commercial" href="posts/2026-06-30-exploring-commercial-real-estate-opportunities-in-chester-county.html">Continue Reading →</a>
+            <a class="read commercial" href="posts/2026-06-30-exploring-commercial-real-estate-opportunities-in-chester-county.html">Read Featured Article →</a>
           </div>
-        </article>
+        </section>
 
+
+    <div class="grid">
+      
         <article class="card">
           <a class="image-link" href="posts/2026-06-30-top-chester-county-housing-market-tips-for-buyers-in-2026.html">
             <img src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&amp;fit=crop&amp;w=1600&amp;q=80" alt="Top Chester County Housing Market Tips for Buyers in 2026">
@@ -212,6 +291,19 @@
         </article>
 
     </div>
+
+    <section class="marketing-tools">
+      <h2>Social Media Post Drafts</h2>
+      <p>These draft posts are automatically generated with new articles and can be copied into Facebook, LinkedIn, or X.</p>
+      <div class="social-grid">
+        
+            <div class="social-card">
+              <h3>Social Media Drafts</h3>
+              <p>New articles will automatically include Facebook, LinkedIn, and X post drafts going forward.</p>
+            </div>
+
+      </div>
+    </section>
   </main>
 </body>
 </html>

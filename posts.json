@@ -15,7 +15,10 @@
     "faq": [],
     "sidebar_image_url": "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1800&q=80",
     "keywords": [],
-    "reading_time": 3
+    "reading_time": 3,
+    "facebook_post": "",
+    "linkedin_post": "",
+    "x_post": ""
   },
   {
     "date": "2026-07-01T01:03:35.117151+00:00",
@@ -46,6 +49,9 @@
     "author": "Dan Marovich, RE/MAX Ace Realty",
     "sidebar_image_url": "https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=1800&q=80",
     "keywords": [],
-    "reading_time": 4
+    "reading_time": 4,
+    "facebook_post": "",
+    "linkedin_post": "",
+    "x_post": ""
   }
 ]
