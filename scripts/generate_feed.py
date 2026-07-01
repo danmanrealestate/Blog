@@ -126,7 +126,9 @@ def pick_next_topic(posts, category, topics):
 
 def generate_article(category, topic, local_now):
     api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key: raise RuntimeError("Missing OPENAI_API_KEY repository secret.")
+    if not api_key:
+        raise RuntimeError("Missing OPENAI_API_KEY repository secret.")
+
     prompt = f"""
 Write an original, polished, SEO-friendly real estate blog article for {SITE_NAME}.
 
@@ -136,20 +138,33 @@ Date: {local_now.strftime('%B %d, %Y')}
 Author: {AUTHOR}
 
 Local markets to naturally reference when relevant:
-Downingtown PA, Chester County PA, Montgomery County PA, Berks County PA, Lancaster County PA, Bucks County PA, Delaware County PA.
+- Downingtown, PA
+- Chester County, PA
+- Montgomery County, PA
+- Berks County, PA
+- Lancaster County, PA
+- Bucks County, PA
+- Delaware County, PA
 
 Return valid JSON only with these exact fields:
-{{"title":"","description":"","content":""}}
+{{
+  "title": "",
+  "description": "",
+  "content": ""
+}}
 
 Requirements:
 - Title under 70 characters.
 - Description between 140 and 160 characters.
 - Content between 1000 and 1400 words.
 - Use HTML formatting only inside content.
-- Use <p>, <h2>, <h3>, and <ul><li>.
-- Make it practical, helpful, and attractive for real estate visitors.
+- Use <p>, <h2>, <h3>, and <ul><li> where helpful.
+- Make the article practical, attractive, and useful to real estate visitors.
 - Do not invent exact market statistics, interest rates, sales numbers, tax rules, or legal advice.
-- Include internal links to <a href="{MAIN_WEBSITE}">DMSellsRE.com</a> and <a href="{MAIN_WEBSITE}/contact">contact Dan Marovich</a>.
+- Add a natural call to action near the end.
+- Include internal links inside the article to:
+  <a href="{MAIN_WEBSITE}">DMSellsRE.com</a>
+  <a href="{MAIN_WEBSITE}/contact">contact Dan Marovich</a>
 - End with a contact line for Dan Marovich at {CONTACT_EMAIL}.
 """
     payload = {"model": OPENAI_MODEL, "input": prompt, "text":{"format":{"type":"json_object"}}}
