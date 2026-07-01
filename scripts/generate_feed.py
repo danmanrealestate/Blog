@@ -2,6 +2,7 @@ import os
 import json
 import re
 import html
+import math
 import requests
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
@@ -14,12 +15,14 @@ SITE_URL = "https://danmanrealestate.github.io/Blog"
 MAIN_WEBSITE = "https://dmsellsre.com"
 AUTHOR = "Dan Marovich, RE/MAX Ace Realty"
 CONTACT_EMAIL = "danmarovich@remax.net"
+CONTACT_PHONE = "610-613-9148"
+CONTACT_PHONE_TEL = "tel:6106139148"
 TIMEZONE = "America/New_York"
 
 POSTS_FILE = "posts.json"
 FEED_FILE = "feed.xml"
 POSTS_DIR = "posts"
-MAX_POSTS_IN_FEED = 75
+MAX_POSTS_IN_FEED = 100
 
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 
@@ -29,6 +32,7 @@ RESIDENTIAL_IMAGES = [
     "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1800&q=80",
     "https://images.unsplash.com/photo-1592595896551-12b371d546d5?auto=format&fit=crop&w=1800&q=80",
     "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1800&q=80",
+    "https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?auto=format&fit=crop&w=1800&q=80",
 ]
 
 COMMERCIAL_IMAGES = [
@@ -37,6 +41,7 @@ COMMERCIAL_IMAGES = [
     "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1800&q=80",
     "https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=1800&q=80",
     "https://images.unsplash.com/photo-1554469384-e58fac16e23a?auto=format&fit=crop&w=1800&q=80",
+    "https://images.unsplash.com/photo-1568992688065-536aad8a12f6?auto=format&fit=crop&w=1800&q=80",
 ]
 
 RESIDENTIAL_TOPICS = [
@@ -70,6 +75,16 @@ RESIDENTIAL_TOPICS = [
     "What homeowners should know before renovating to sell",
     "How buyers can stay organized during a home search",
     "Why pricing strategy matters when selling a home",
+    "How to prepare for a home appraisal",
+    "What sellers should know about buyer financing",
+    "How to choose between a starter home and a long-term home",
+    "What to consider before buying new construction",
+    "How to prepare a rental property for quality tenants",
+    "Questions landlords should ask before listing a rental",
+    "How to compare suburban and small-town living in Southeastern PA",
+    "What homeowners should know about timing a sale",
+    "How to avoid common buyer mistakes in a competitive market",
+    "How to create a home search strategy that saves time",
 ]
 
 COMMERCIAL_TOPICS = [
@@ -103,6 +118,16 @@ COMMERCIAL_TOPICS = [
     "What to know before purchasing land for development",
     "How investors can think about cash flow and resale value",
     "Commercial property marketing tips for owners",
+    "How business owners can plan for future space needs",
+    "What investors should know about lease structure",
+    "How to compare owner-user and investment commercial properties",
+    "Why visibility and access matter for retail space",
+    "How to evaluate parking, zoning, and utility needs",
+    "What to consider before buying a warehouse or flex building",
+    "How commercial tenants can prepare before touring space",
+    "How landlords can improve tenant retention",
+    "What to know about buying multifamily properties",
+    "Commercial property management planning for investors",
 ]
 
 
@@ -134,13 +159,14 @@ def main():
     today_key = local_now.strftime("%Y-%m-%d")
 
     if any(p.get("date_key") == today_key and p.get("category") == category for p in posts):
-        print(f"{category} post already exists for {today_key}. Rebuilding with Version 3 template.")
+        print(f"{category} post already exists for {today_key}. Rebuilding with Version 4 template.")
         rebuild_all()
         return
 
     topic = pick_next_topic(posts, category, topics)
-    image_url = pick_image(posts, category, images)
-    inline_image_url = pick_image(posts + [{"category": category}], category, images)
+    image_url = pick_image(posts, category, images, offset=0)
+    inline_image_url = pick_image(posts, category, images, offset=1)
+    sidebar_image_url = pick_image(posts, category, images, offset=2)
 
     article = generate_article(category, topic, local_now)
 
@@ -157,18 +183,21 @@ def main():
         "description": article["description"],
         "content": article["content"],
         "faq": article.get("faq", []),
+        "keywords": article.get("keywords", []),
         "image_url": image_url,
         "inline_image_url": inline_image_url,
+        "sidebar_image_url": sidebar_image_url,
         "filename": filename,
         "link": post_url,
         "author": AUTHOR,
+        "reading_time": estimate_reading_time(article["content"]),
     }
 
     posts.append(post)
     save_posts(posts)
     rebuild_all()
 
-    print(f"Created Version 3 article page: {post_url}")
+    print(f"Created Version 4 article page: {post_url}")
 
 
 def load_posts():
@@ -199,9 +228,9 @@ def pick_next_topic(posts, category, topics):
     return topics[index]
 
 
-def pick_image(posts, category, images):
+def pick_image(posts, category, images, offset=0):
     count = len([p for p in posts if p.get("category") == category])
-    return images[count % len(images)]
+    return images[(count + offset) % len(images)]
 
 
 def generate_article(category, topic, local_now):
@@ -217,6 +246,13 @@ Category: {category}
 Topic: {topic}
 Date: {local_now.strftime('%B %d, %Y')}
 Author: {AUTHOR}
+
+Business contact:
+- Dan Marovich
+- RE/MAX Ace Realty
+- Phone: {CONTACT_PHONE}
+- Email: {CONTACT_EMAIL}
+- Website: {MAIN_WEBSITE}
 
 Local markets to naturally reference when relevant:
 - Downingtown, PA
@@ -238,27 +274,30 @@ Return valid JSON only with these exact fields:
       "question": "",
       "answer": ""
     }}
-  ]
+  ],
+  "keywords": []
 }}
 
 Article requirements:
 - Title under 70 characters.
 - Description between 140 and 160 characters.
-- Content between 1200 and 1800 words.
+- Content between 1400 and 2000 words.
 - Use HTML formatting only inside content.
 - Use <p>, <h2>, <h3>, <ul>, and <li> where helpful.
-- Add one short "Key Takeaways" section in the content.
-- Add one short "Local Market Perspective" section in the content.
-- Make the article practical, attractive, and useful to real estate visitors.
+- Add a short "Key Takeaways" section in the content.
+- Add a short "Local Market Perspective" section in the content.
+- Add a "Questions to Ask Before You Move Forward" section.
+- Add practical advice for buyers, sellers, renters, landlords, business owners, or investors depending on the topic.
+- Make the article useful, attractive, and educational for real estate visitors.
 - Do not invent exact market statistics, interest rates, sales numbers, tax rules, legal advice, or financial guarantees.
 - Do not say the article was AI-generated.
-- Use a professional but approachable tone.
-- Include practical advice for buyers, sellers, renters, landlords, business owners, or investors depending on the topic.
+- Use a professional, approachable, confident tone.
 - Include internal links naturally inside the article:
   <a href="{MAIN_WEBSITE}">DMSellsRE.com</a>
   <a href="{MAIN_WEBSITE}/contact">contact Dan Marovich</a>
-- End the content with a natural call to contact Dan Marovich at {CONTACT_EMAIL}.
-- FAQ must include 3 questions and answers.
+- End the content with a natural call to contact Dan Marovich at {CONTACT_PHONE} or {CONTACT_EMAIL}.
+- FAQ must include 4 questions and answers.
+- Keywords must include 8 to 12 SEO keyword phrases.
 """
 
     payload = {
@@ -298,6 +337,9 @@ Article requirements:
 
     if not isinstance(article.get("faq"), list):
         article["faq"] = []
+
+    if not isinstance(article.get("keywords"), list):
+        article["keywords"] = []
 
     return article
 
@@ -360,8 +402,11 @@ def normalize_posts(posts):
 
         post.setdefault("image_url", image_pool[index % len(image_pool)])
         post.setdefault("inline_image_url", image_pool[(index + 1) % len(image_pool)])
+        post.setdefault("sidebar_image_url", image_pool[(index + 2) % len(image_pool)])
         post.setdefault("faq", [])
+        post.setdefault("keywords", [])
         post.setdefault("author", AUTHOR)
+        post.setdefault("reading_time", estimate_reading_time(post.get("content", "")))
 
         if not post.get("filename"):
             date_key = post.get("date_key") or datetime.now(ZoneInfo(TIMEZONE)).strftime("%Y-%m-%d")
@@ -377,17 +422,36 @@ def normalize_posts(posts):
 def write_article_page(post):
     faq_html = build_faq_html(post)
     schema_json = build_schema_json(post)
+    keyword_string = ", ".join(str(k) for k in post.get("keywords", [])[:12])
+    share_url = escape_attr(post["link"])
+    share_title = escape_attr(post["title"])
 
     page = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>{escape_attr(post["title"])}</title>
   <meta name="description" content="{escape_attr(post["description"])}">
+  <meta name="keywords" content="{escape_attr(keyword_string)}">
+  <meta name="author" content="Dan Marovich">
+
+  <meta property="og:title" content="{escape_attr(post["title"])}">
+  <meta property="og:description" content="{escape_attr(post["description"])}">
+  <meta property="og:image" content="{escape_attr(post["image_url"])}">
+  <meta property="og:url" content="{share_url}">
+  <meta property="og:type" content="article">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{escape_attr(post["title"])}">
+  <meta name="twitter:description" content="{escape_attr(post["description"])}">
+  <meta name="twitter:image" content="{escape_attr(post["image_url"])}">
+
   <script type="application/ld+json">
 {schema_json}
   </script>
+
   <style>
     :root {{
       --navy: #061b36;
@@ -402,293 +466,149 @@ def write_article_page(post):
       --shadow: 0 18px 45px rgba(15,23,42,.14);
     }}
 
-    * {{
-      box-sizing: border-box;
-    }}
+    * {{ box-sizing: border-box; }}
+    body {{ margin: 0; font-family: Arial, Helvetica, sans-serif; background: var(--light); color: var(--text); line-height: 1.7; }}
+    a {{ color: var(--red); font-weight: 800; }}
 
-    body {{
-      margin: 0;
-      font-family: Arial, Helvetica, sans-serif;
-      background: var(--light);
-      color: var(--text);
-      line-height: 1.7;
-    }}
+    .topbar {{ background: #030d1b; color: #cbd7e8; padding: 14px 6%; font-size: .92rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }}
+    .topbar a {{ color: #f0dba1; text-decoration: none; }}
 
-    a {{
-      color: var(--red);
-      font-weight: 800;
-    }}
+    .hero {{ background: linear-gradient(90deg, rgba(6,27,54,.95), rgba(6,27,54,.60)), url('{escape_attr(post["image_url"])}') center/cover; color: white; padding: 98px 6%; }}
+    .hero-inner {{ max-width: 1160px; margin: auto; }}
+    .eyebrow {{ color: #f0dba1; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; font-size: .85rem; margin-bottom: 14px; }}
+    h1 {{ font-size: clamp(2.2rem, 5vw, 4.9rem); line-height: 1.02; margin: 0; max-width: 1060px; letter-spacing: -1px; }}
+    .meta {{ margin-top: 18px; color: #dbe6f3; font-weight: 700; }}
 
-    .topbar {{
-      background: #030d1b;
-      color: #cbd7e8;
-      padding: 14px 6%;
-      font-size: .92rem;
-      display: flex;
-      justify-content: space-between;
-      gap: 16px;
-      flex-wrap: wrap;
-    }}
+    .sharebar {{ margin-top: 24px; display: flex; flex-wrap: wrap; gap: 10px; }}
+    .sharebar a, .sharebar button {{ background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.24); color: white; border-radius: 999px; padding: 10px 14px; text-decoration: none; font-weight: 800; cursor: pointer; font: inherit; }}
 
-    .topbar a {{
-      color: #f0dba1;
-      text-decoration: none;
-    }}
+    main {{ max-width: 1160px; margin: -46px auto 0; padding: 0 6% 80px; }}
+    article {{ background: white; border-radius: 24px; box-shadow: var(--shadow); overflow: hidden; border: 1px solid var(--border); }}
+    .featured {{ width: 100%; height: 410px; object-fit: cover; display: block; }}
+    .content-wrap {{ display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 34px; padding: 46px; }}
+    .summary {{ font-size: 1.2rem; color: #344054; border-left: 6px solid var(--red); padding-left: 20px; margin: 0 0 32px; font-weight: 700; }}
 
-    .hero {{
-      background:
-        linear-gradient(90deg, rgba(6,27,54,.94), rgba(6,27,54,.58)),
-        url('{escape_attr(post["image_url"])}') center/cover;
-      color: white;
-      padding: 96px 6%;
-    }}
+    .article-body h2 {{ color: var(--navy); font-size: 1.95rem; line-height: 1.15; margin-top: 36px; }}
+    .article-body h3 {{ color: var(--navy); margin-top: 24px; }}
+    .article-body p, .article-body li {{ color: #344054; }}
+    .article-body ul {{ padding-left: 24px; }}
+    .article-body li {{ margin-bottom: 8px; }}
 
-    .hero-inner {{
-      max-width: 1120px;
-      margin: auto;
-    }}
+    .article-image {{ margin: 34px 0; border-radius: 18px; overflow: hidden; box-shadow: 0 14px 32px rgba(15,23,42,.12); }}
+    .article-image img {{ width: 100%; height: 320px; object-fit: cover; display: block; }}
+    .article-image figcaption {{ font-size: .9rem; color: var(--muted); padding: 12px 16px; background: #f8fafc; }}
 
-    .eyebrow {{
-      color: #f0dba1;
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      font-size: .85rem;
-      margin-bottom: 14px;
-    }}
+    .info-box {{ margin: 34px 0; background: #f5f7fb; border: 1px solid var(--border); border-left: 6px solid var(--gold); border-radius: 18px; padding: 24px; }}
+    .info-box h2 {{ margin-top: 0; font-size: 1.55rem; }}
 
-    h1 {{
-      font-size: clamp(2.2rem, 5vw, 4.8rem);
-      line-height: 1.02;
-      margin: 0;
-      max-width: 1040px;
-      letter-spacing: -1px;
-    }}
+    .sidebar {{ align-self: start; display: grid; gap: 18px; position: sticky; top: 20px; }}
+    .side-card {{ border: 1px solid var(--border); border-radius: 18px; padding: 22px; background: #f8fafc; }}
+    .side-card.dark {{ background: var(--navy); color: white; border: 0; }}
+    .side-card.dark p {{ color: #dbe6f3; }}
+    .side-card h3 {{ margin-top: 0; color: var(--navy); }}
+    .side-card.dark h3 {{ color: white; }}
+    .side-card img {{ width: 100%; height: 165px; object-fit: cover; border-radius: 14px; margin-bottom: 14px; }}
+    .contact-list {{ list-style: none; padding: 0; margin: 0; }}
+    .contact-list li {{ margin-bottom: 8px; color: inherit; }}
+    .contact-list a {{ color: #f0dba1; text-decoration: none; }}
 
-    .meta {{
-      margin-top: 18px;
-      color: #dbe6f3;
-      font-weight: 700;
-    }}
+    .faq {{ margin-top: 42px; background: #f8fafc; border-radius: 20px; padding: 28px; border: 1px solid var(--border); }}
+    .faq h2 {{ margin-top: 0; }}
+    .faq-item {{ border-top: 1px solid var(--border); padding-top: 18px; margin-top: 18px; }}
+    .faq-item h3 {{ margin: 0 0 8px; color: var(--navy); }}
 
-    main {{
-      max-width: 1120px;
-      margin: -46px auto 0;
-      padding: 0 6% 78px;
-    }}
+    .cta {{ margin-top: 42px; background: linear-gradient(135deg, var(--red), var(--navy)); color: white; border-radius: 20px; padding: 32px; }}
+    .cta h2 {{ color: white; margin-top: 0; }}
+    .cta p {{ color: #e4edf8; margin-bottom: 18px; }}
+    .btn {{ display: inline-block; background: white; color: var(--navy); padding: 14px 20px; border-radius: 999px; text-decoration: none; font-weight: 900; text-transform: uppercase; font-size: .9rem; margin-right: 8px; margin-bottom: 8px; }}
+    .btn-red {{ background: var(--red); color: white; }}
 
-    article {{
-      background: white;
-      border-radius: 24px;
-      box-shadow: var(--shadow);
-      overflow: hidden;
-      border: 1px solid var(--border);
-    }}
+    footer {{ text-align: center; padding: 36px 6%; color: var(--muted); }}
+    footer a {{ color: var(--red); text-decoration: none; }}
 
-    .featured {{
-      width: 100%;
-      height: 390px;
-      object-fit: cover;
-      display: block;
-    }}
-
-    .content {{
-      padding: 46px;
-    }}
-
-    .summary {{
-      font-size: 1.2rem;
-      color: #344054;
-      border-left: 6px solid var(--red);
-      padding-left: 20px;
-      margin-bottom: 32px;
-      font-weight: 700;
-    }}
-
-    .article-image {{
-      margin: 34px 0;
-      border-radius: 18px;
-      overflow: hidden;
-      box-shadow: 0 14px 32px rgba(15,23,42,.12);
-    }}
-
-    .article-image img {{
-      width: 100%;
-      height: 320px;
-      object-fit: cover;
-      display: block;
-    }}
-
-    .article-image figcaption {{
-      font-size: .9rem;
-      color: var(--muted);
-      padding: 12px 16px;
-      background: #f8fafc;
-    }}
-
-    h2 {{
-      color: var(--navy);
-      font-size: 1.95rem;
-      line-height: 1.15;
-      margin-top: 36px;
-    }}
-
-    h3 {{
-      color: var(--navy);
-      margin-top: 24px;
-    }}
-
-    p,
-    li {{
-      color: #344054;
-    }}
-
-    ul {{
-      padding-left: 24px;
-    }}
-
-    li {{
-      margin-bottom: 8px;
-    }}
-
-    .info-box {{
-      margin: 34px 0;
-      background: #f5f7fb;
-      border: 1px solid var(--border);
-      border-left: 6px solid var(--gold);
-      border-radius: 18px;
-      padding: 24px;
-    }}
-
-    .info-box h2 {{
-      margin-top: 0;
-      font-size: 1.55rem;
-    }}
-
-    .faq {{
-      margin-top: 42px;
-      background: #f8fafc;
-      border-radius: 20px;
-      padding: 28px;
-      border: 1px solid var(--border);
-    }}
-
-    .faq h2 {{
-      margin-top: 0;
-    }}
-
-    .faq-item {{
-      border-top: 1px solid var(--border);
-      padding-top: 18px;
-      margin-top: 18px;
-    }}
-
-    .faq-item h3 {{
-      margin: 0 0 8px;
-    }}
-
-    .cta {{
-      margin-top: 42px;
-      background: linear-gradient(135deg, var(--red), var(--navy));
-      color: white;
-      border-radius: 20px;
-      padding: 32px;
-    }}
-
-    .cta h2 {{
-      color: white;
-      margin-top: 0;
-    }}
-
-    .cta p {{
-      color: #e4edf8;
-      margin-bottom: 18px;
-    }}
-
-    .btn {{
-      display: inline-block;
-      background: white;
-      color: var(--navy);
-      padding: 14px 20px;
-      border-radius: 999px;
-      text-decoration: none;
-      font-weight: 900;
-      text-transform: uppercase;
-      font-size: .9rem;
-    }}
-
-    footer {{
-      text-align: center;
-      padding: 36px 6%;
-      color: var(--muted);
-    }}
-
-    footer a {{
-      color: var(--red);
-      text-decoration: none;
-    }}
-
-    @media (max-width: 760px) {{
-      .content {{
-        padding: 28px;
-      }}
-
-      .featured,
-      .article-image img {{
-        height: 240px;
-      }}
-
-      .topbar {{
-        display: block;
-      }}
-    }}
+    @media (max-width: 900px) {{ .content-wrap {{ grid-template-columns: 1fr; }} .sidebar {{ position: static; }} }}
+    @media (max-width: 760px) {{ .content-wrap {{ padding: 28px; }} .featured, .article-image img {{ height: 240px; }} .topbar {{ display: block; }} }}
   </style>
 </head>
 <body>
   <div class="topbar">
     <div>Dan Marovich · RE/MAX Ace Realty</div>
-    <div><a href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a> · <a href="{MAIN_WEBSITE}">DMSellsRE.com</a></div>
+    <div><a href="{CONTACT_PHONE_TEL}">{CONTACT_PHONE}</a> · <a href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a> · <a href="{MAIN_WEBSITE}">DMSellsRE.com</a></div>
   </div>
 
   <section class="hero">
     <div class="hero-inner">
       <div class="eyebrow">{escape_html(post["category"])}</div>
       <h1>{escape_html(post["title"])}</h1>
-      <div class="meta">By {escape_html(post["author"])} · {display_date(post["date"])}</div>
+      <div class="meta">By {escape_html(post["author"])} · {display_date(post["date"])} · {escape_html(str(post.get("reading_time", "5")))} min read</div>
+      <div class="sharebar">
+        <a href="https://www.facebook.com/sharer/sharer.php?u={share_url}" target="_blank" rel="noopener">Share on Facebook</a>
+        <a href="https://www.linkedin.com/sharing/share-offsite/?url={share_url}" target="_blank" rel="noopener">Share on LinkedIn</a>
+        <a href="https://twitter.com/intent/tweet?url={share_url}&text={share_title}" target="_blank" rel="noopener">Share on X</a>
+        <button onclick="window.print()">Print Article</button>
+      </div>
     </div>
   </section>
 
   <main>
     <article>
       <img class="featured" src="{escape_attr(post["image_url"])}" alt="{escape_attr(post["title"])}">
-      <div class="content">
-        <p class="summary">{escape_html(post["description"])}</p>
 
-        {post["content"]}
+      <div class="content-wrap">
+        <div class="article-body">
+          <p class="summary">{escape_html(post["description"])}</p>
 
-        <figure class="article-image">
-          <img src="{escape_attr(post["inline_image_url"])}" alt="Real estate planning in Southeastern Pennsylvania">
-          <figcaption>Thoughtful real estate planning helps buyers, sellers, landlords, business owners, and investors make better decisions.</figcaption>
-        </figure>
+          {post["content"]}
 
-        <div class="info-box">
-          <h2>Local Real Estate Guidance Matters</h2>
-          <p>Real estate decisions are rarely one-size-fits-all. Property condition, location, timing, financing, lease terms, management needs, and long-term goals can all influence the right strategy. A local conversation can help clarify the next best step.</p>
+          <figure class="article-image">
+            <img src="{escape_attr(post["inline_image_url"])}" alt="Real estate planning in Southeastern Pennsylvania">
+            <figcaption>Thoughtful real estate planning helps buyers, sellers, landlords, business owners, and investors make better decisions.</figcaption>
+          </figure>
+
+          <div class="info-box">
+            <h2>Local Real Estate Guidance Matters</h2>
+            <p>Real estate decisions are rarely one-size-fits-all. Property condition, location, timing, financing, lease terms, management needs, and long-term goals can all influence the right strategy. A local conversation can help clarify the next best step.</p>
+          </div>
+
+          {faq_html}
+
+          <div class="cta">
+            <h2>Ready to Talk Real Estate?</h2>
+            <p>Whether you are buying, selling, renting, leasing, investing, or exploring property management, Dan Marovich can help you understand your options in Southeastern Pennsylvania.</p>
+            <a class="btn" href="{MAIN_WEBSITE}/contact">Contact Dan</a>
+            <a class="btn btn-red" href="{CONTACT_PHONE_TEL}">Call {CONTACT_PHONE}</a>
+          </div>
         </div>
 
-        {faq_html}
+        <aside class="sidebar">
+          <div class="side-card dark">
+            <h3>Contact Dan Marovich</h3>
+            <p>RE/MAX Ace Realty</p>
+            <ul class="contact-list">
+              <li><strong>Phone:</strong> <a href="{CONTACT_PHONE_TEL}">{CONTACT_PHONE}</a></li>
+              <li><strong>Email:</strong> <a href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a></li>
+              <li><strong>Website:</strong> <a href="{MAIN_WEBSITE}">DMSellsRE.com</a></li>
+            </ul>
+          </div>
 
-        <div class="cta">
-          <h2>Ready to Talk Real Estate?</h2>
-          <p>Whether you are buying, selling, renting, leasing, investing, or exploring property management, Dan Marovich can help you understand your options in Southeastern Pennsylvania.</p>
-          <a class="btn" href="{MAIN_WEBSITE}/contact">Contact Dan</a>
-        </div>
+          <div class="side-card">
+            <img src="{escape_attr(post["sidebar_image_url"])}" alt="Real estate services">
+            <h3>Real Estate Services</h3>
+            <p>Residential, commercial, leasing, investment properties, new construction, land, and property management support across Southeastern Pennsylvania.</p>
+          </div>
+
+          <div class="side-card">
+            <h3>Helpful Next Step</h3>
+            <p>Have a question about this topic? Start with a quick conversation about your goals, timing, and property needs.</p>
+            <a class="btn btn-red" href="{MAIN_WEBSITE}/contact">Ask Dan</a>
+          </div>
+        </aside>
       </div>
     </article>
   </main>
 
   <footer>
-    Dan Marovich · RE/MAX Ace Realty · <a href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a><br>
+    Dan Marovich · RE/MAX Ace Realty · <a href="{CONTACT_PHONE_TEL}">{CONTACT_PHONE}</a> · <a href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a><br>
     <a href="{MAIN_WEBSITE}">Visit DMSellsRE.com</a>
   </footer>
 </body>
@@ -716,7 +636,7 @@ def build_faq_html(post):
             },
             {
                 "question": "How can I get started?",
-                "answer": f"You can contact Dan Marovich at {CONTACT_EMAIL} to discuss your goals and the best next step.",
+                "answer": f"You can contact Dan Marovich at {CONTACT_PHONE} or {CONTACT_EMAIL} to discuss your goals and the best next step.",
             },
         ]
 
@@ -785,6 +705,7 @@ def write_index(posts):
             <div class="category">{escape_html(post["category"])}</div>
             <h2><a href="posts/{escape_attr(post["filename"])}">{escape_html(post["title"])}</a></h2>
             <p>{escape_html(post["description"])}</p>
+            <div class="card-meta">{display_date(post["date"])} · {escape_html(str(post.get("reading_time", "5")))} min read</div>
             <a class="read" href="posts/{escape_attr(post["filename"])}">Read Article →</a>
           </div>
         </article>
@@ -804,108 +725,37 @@ def write_index(posts):
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DMSellsRE Real Estate Blog</title>
+  <meta name="description" content="Residential and commercial real estate insights from Dan Marovich, RE/MAX Ace Realty.">
   <style>
-    body {{
-      margin: 0;
-      font-family: Arial, Helvetica, sans-serif;
-      background: #f5f7fb;
-      color: #172033;
-      line-height: 1.6;
-    }}
-
-    header {{
-      background:
-        linear-gradient(135deg, rgba(6,27,54,.96), rgba(181,18,27,.88));
-      color: white;
-      padding: 76px 6%;
-      text-align: center;
-    }}
-
-    header h1 {{
-      margin: 0;
-      font-size: clamp(2rem, 4vw, 4rem);
-    }}
-
-    header p {{
-      color: #dbe6f3;
-      max-width: 850px;
-      margin: 14px auto 0;
-    }}
-
-    main {{
-      padding: 54px 6%;
-      max-width: 1220px;
-      margin: auto;
-    }}
-
-    .grid {{
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 28px;
-    }}
-
-    .card {{
-      background: white;
-      border-radius: 22px;
-      overflow: hidden;
-      box-shadow: 0 14px 35px rgba(15,23,42,.11);
-      border: 1px solid #e4e8f0;
-    }}
-
-    .card img {{
-      width: 100%;
-      height: 270px;
-      object-fit: cover;
-      display: block;
-    }}
-
-    .body {{
-      padding: 28px;
-    }}
-
-    .category {{
-      color: #b5121b;
-      text-transform: uppercase;
-      font-size: .8rem;
-      letter-spacing: 1px;
-      font-weight: 900;
-    }}
-
-    h2 {{
-      margin: 8px 0 10px;
-      line-height: 1.15;
-    }}
-
-    a {{
-      color: #061b36;
-      text-decoration: none;
-    }}
-
-    .read {{
-      color: #b5121b;
-      font-weight: 900;
-      text-transform: uppercase;
-      font-size: .9rem;
-    }}
-
-    .empty {{
-      background: white;
-      border-radius: 20px;
-      padding: 32px;
-      box-shadow: 0 14px 35px rgba(15,23,42,.10);
-    }}
-
-    @media (max-width: 800px) {{
-      .grid {{
-        grid-template-columns: 1fr;
-      }}
-    }}
+    body {{ margin: 0; font-family: Arial, Helvetica, sans-serif; background: #f5f7fb; color: #172033; line-height: 1.6; }}
+    header {{ background: linear-gradient(135deg, rgba(6,27,54,.96), rgba(181,18,27,.88)); color: white; padding: 78px 6%; text-align: center; }}
+    header h1 {{ margin: 0; font-size: clamp(2rem, 4vw, 4rem); }}
+    header p {{ color: #dbe6f3; max-width: 850px; margin: 14px auto 0; }}
+    .header-links {{ margin-top: 22px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }}
+    .header-links a {{ background: white; color: #061b36; padding: 12px 16px; border-radius: 999px; text-decoration: none; font-weight: 900; text-transform: uppercase; font-size: .85rem; }}
+    main {{ padding: 54px 6%; max-width: 1240px; margin: auto; }}
+    .grid {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 28px; }}
+    .card {{ background: white; border-radius: 22px; overflow: hidden; box-shadow: 0 14px 35px rgba(15,23,42,.11); border: 1px solid #e4e8f0; }}
+    .card img {{ width: 100%; height: 280px; object-fit: cover; display: block; }}
+    .body {{ padding: 28px; }}
+    .category {{ color: #b5121b; text-transform: uppercase; font-size: .8rem; letter-spacing: 1px; font-weight: 900; }}
+    h2 {{ margin: 8px 0 10px; line-height: 1.15; }}
+    a {{ color: #061b36; text-decoration: none; }}
+    .card-meta {{ color: #667085; font-size: .92rem; margin: 14px 0; }}
+    .read {{ color: #b5121b; font-weight: 900; text-transform: uppercase; font-size: .9rem; }}
+    .empty {{ background: white; border-radius: 20px; padding: 32px; box-shadow: 0 14px 35px rgba(15,23,42,.10); }}
+    @media (max-width: 800px) {{ .grid {{ grid-template-columns: 1fr; }} }}
   </style>
 </head>
 <body>
   <header>
     <h1>DMSellsRE Real Estate Blog</h1>
     <p>Residential, commercial, leasing, property management, and investment real estate insights from Dan Marovich.</p>
+    <div class="header-links">
+      <a href="{MAIN_WEBSITE}">Visit Website</a>
+      <a href="{MAIN_WEBSITE}/contact">Contact Dan</a>
+      <a href="{CONTACT_PHONE_TEL}">Call {CONTACT_PHONE}</a>
+    </div>
   </header>
 
   <main>
@@ -965,7 +815,7 @@ def write_feed(posts):
 <img src="{escape_attr(post["image_url"])}" alt="{escape_attr(post["title"])}" style="width:100%;max-width:900px;height:auto;" />
 <p><strong>{escape_html(post["description"])}</strong></p>
 {post["content"]}
-<p><strong>Contact Dan Marovich, RE/MAX Ace Realty:</strong> <a href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a></p>
+<p><strong>Contact Dan Marovich, RE/MAX Ace Realty:</strong> <a href="{CONTACT_PHONE_TEL}">{CONTACT_PHONE}</a> · <a href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a></p>
 <p><a href="{post["link"]}">Read the full article</a></p>
 """
 
@@ -1011,5 +861,13 @@ def display_date(value):
         return ""
 
 
+def estimate_reading_time(content):
+    text = re.sub(r"<[^>]+>", " ", str(content or ""))
+    words = len(re.findall(r"\w+", text))
+    minutes = max(3, math.ceil(words / 225))
+    return minutes
+
+
 if __name__ == "__main__":
     main()
+
