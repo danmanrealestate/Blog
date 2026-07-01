@@ -403,6 +403,9 @@ def normalize_posts(posts):
         post.setdefault("sidebar_image_url", image_pool[(index + 2) % len(image_pool)])
         post.setdefault("faq", [])
         post.setdefault("keywords", [])
+        post.setdefault("facebook_post", "")
+        post.setdefault("linkedin_post", "")
+        post.setdefault("x_post", "")
         post.setdefault("author", AUTHOR)
         post.setdefault("reading_time", estimate_reading_time(post.get("content", "")))
 
@@ -823,9 +826,31 @@ def build_schema_json(post):
 def write_index(posts):
     posts = sorted(posts, key=lambda p: p.get("date", ""), reverse=True)
 
+    featured_html = ""
     cards = ""
 
-    for post in posts:
+    if posts:
+        featured = posts[0]
+        featured_class = "commercial" if "Commercial" in featured.get("category", "") else "residential"
+        featured_html = f"""
+        <section class="featured-post">
+          <a class="featured-image" href="posts/{escape_attr(featured["filename"])}">
+            <img src="{escape_attr(featured["image_url"])}" alt="{escape_attr(featured["title"])}">
+          </a>
+          <div class="featured-body">
+            <div class="topline">
+              <span class="date">{display_date(featured["date"])}</span>
+              <span class="badge {featured_class}">{escape_html(featured["category"].replace(" Real Estate", ""))}</span>
+            </div>
+            <h2><a href="posts/{escape_attr(featured["filename"])}">{escape_html(featured["title"])}</a></h2>
+            <p>{escape_html(featured["description"])}</p>
+            <div class="card-meta">{escape_html(str(featured.get("reading_time", "5")))} min read · By Dan Marovich · RE/MAX Ace Realty</div>
+            <a class="read {featured_class}" href="posts/{escape_attr(featured["filename"])}">Read Featured Article →</a>
+          </div>
+        </section>
+"""
+
+    for post in posts[1:]:
         category_class = "commercial" if "Commercial" in post.get("category", "") else "residential"
         cards += f"""
         <article class="card">
@@ -845,12 +870,32 @@ def write_index(posts):
         </article>
 """
 
-    if not cards:
+    if not posts:
         cards = """
         <div class="empty">
           <h2>Articles Coming Soon</h2>
           <p>Residential articles are scheduled for Mondays and commercial articles are scheduled for Fridays.</p>
         </div>
+"""
+
+    social_rows = ""
+    for post in posts[:4]:
+        if post.get("facebook_post") or post.get("linkedin_post") or post.get("x_post"):
+            social_rows += f"""
+            <div class="social-card">
+              <h3>{escape_html(post["title"])}</h3>
+              <p><strong>Facebook:</strong> {escape_html(post.get("facebook_post", ""))}</p>
+              <p><strong>LinkedIn:</strong> {escape_html(post.get("linkedin_post", ""))}</p>
+              <p><strong>X:</strong> {escape_html(post.get("x_post", ""))}</p>
+            </div>
+"""
+
+    if not social_rows:
+        social_rows = """
+            <div class="social-card">
+              <h3>Social Media Drafts</h3>
+              <p>New articles will automatically include Facebook, LinkedIn, and X post drafts going forward.</p>
+            </div>
 """
 
     index = f"""<!DOCTYPE html>
@@ -864,6 +909,7 @@ def write_index(posts):
     :root {{
       --navy: #061b36;
       --red: #b5121b;
+      --gold: #c7a45a;
       --light: #f7f9fc;
       --text: #172033;
       --muted: #667085;
@@ -905,6 +951,40 @@ def write_index(posts):
       margin: auto;
     }}
 
+    .featured-post {{
+      display: grid;
+      grid-template-columns: 52% 1fr;
+      gap: 34px;
+      align-items: center;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 24px;
+      margin-bottom: 42px;
+      box-shadow: var(--shadow);
+    }}
+
+    .featured-image {{
+      display: block;
+      border-radius: 18px;
+      overflow: hidden;
+      background: #eef2f7;
+    }}
+
+    .featured-image img {{
+      width: 100%;
+      height: 390px;
+      object-fit: cover;
+      display: block;
+    }}
+
+    .featured-body h2 {{
+      margin: 0 0 14px;
+      font-size: clamp(2rem, 3.6vw, 3.2rem);
+      line-height: 1.04;
+      color: var(--navy);
+    }}
+
     .grid {{
       display: grid;
       gap: 34px;
@@ -935,7 +1015,8 @@ def write_index(posts):
       transition: transform .25s ease;
     }}
 
-    .card:hover img {{
+    .card:hover img,
+    .featured-post:hover img {{
       transform: scale(1.03);
     }}
 
@@ -1005,6 +1086,41 @@ def write_index(posts):
       font-weight: 900;
     }}
 
+    .marketing-tools {{
+      margin-top: 50px;
+      background: var(--light);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 28px;
+    }}
+
+    .marketing-tools h2 {{
+      margin-top: 0;
+      font-size: 2rem;
+    }}
+
+    .social-grid {{
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+    }}
+
+    .social-card {{
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px;
+    }}
+
+    .social-card h3 {{
+      margin-top: 0;
+      color: var(--navy);
+    }}
+
+    .social-card p {{
+      font-size: .96rem;
+    }}
+
     .empty {{
       background: var(--light);
       border-radius: 20px;
@@ -1012,14 +1128,20 @@ def write_index(posts):
       border: 1px solid var(--border);
     }}
 
-    @media (max-width: 800px) {{
+    @media (max-width: 900px) {{
+      .featured-post,
       .card {{
         grid-template-columns: 1fr;
         gap: 18px;
       }}
 
+      .featured-image img,
       .card img {{
-        height: 260px;
+        height: 270px;
+      }}
+
+      .social-grid {{
+        grid-template-columns: 1fr;
       }}
     }}
   </style>
@@ -1032,9 +1154,19 @@ def write_index(posts):
   </header>
 
   <main>
+    {featured_html}
+
     <div class="grid">
       {cards}
     </div>
+
+    <section class="marketing-tools">
+      <h2>Social Media Post Drafts</h2>
+      <p>These draft posts are automatically generated with new articles and can be copied into Facebook, LinkedIn, or X.</p>
+      <div class="social-grid">
+        {social_rows}
+      </div>
+    </section>
   </main>
 </body>
 </html>
