@@ -10,7 +10,7 @@ from email.utils import format_datetime
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 
-SITE_NAME = "DMSellsRE.com Real Estate Blog"
+SITE_NAME = "Real Estate Blog"
 SITE_URL = "https://danmanrealestate.github.io/Blog"
 MAIN_WEBSITE = "https://dmsellsre.com"
 AUTHOR = "Dan Marovich, RE/MAX Ace Realty"
@@ -159,7 +159,7 @@ def main():
     today_key = local_now.strftime("%Y-%m-%d")
 
     if any(p.get("date_key") == today_key and p.get("category") == category for p in posts):
-        print(f"{category} post already exists for {today_key}. Rebuilding with Version 4 template.")
+        print(f"{category} post already exists for {today_key}. Rebuilding with Version 5 template.")
         rebuild_all()
         return
 
@@ -197,7 +197,7 @@ def main():
     save_posts(posts)
     rebuild_all()
 
-    print(f"Created Version 4 article page: {post_url}")
+    print(f"Created Version 5 article page: {post_url}")
 
 
 def load_posts():
@@ -349,7 +349,6 @@ def extract_output_text(data):
         return data["output_text"]
 
     pieces = []
-
     for item in data.get("output", []):
         for content_item in item.get("content", []):
             if "text" in content_item:
@@ -397,7 +396,6 @@ def normalize_posts(posts):
     for index, post in enumerate(posts):
         category = post.get("category", "Residential Real Estate")
         is_commercial = "Commercial" in category
-
         image_pool = COMMERCIAL_IMAGES if is_commercial else RESIDENTIAL_IMAGES
 
         post.setdefault("image_url", image_pool[index % len(image_pool)])
@@ -426,12 +424,13 @@ def write_article_page(post):
     share_url = escape_attr(post["link"])
     share_title = escape_attr(post["title"])
 
+    category_class = "commercial" if "Commercial" in post.get("category", "") else "residential"
+
     page = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <title>{escape_attr(post["title"])}</title>
   <meta name="description" content="{escape_attr(post["description"])}">
   <meta name="keywords" content="{escape_attr(keyword_string)}">
@@ -455,7 +454,6 @@ def write_article_page(post):
   <style>
     :root {{
       --navy: #061b36;
-      --blue: #0b3d75;
       --red: #b5121b;
       --gold: #c7a45a;
       --light: #f5f7fb;
@@ -467,26 +465,101 @@ def write_article_page(post):
     }}
 
     * {{ box-sizing: border-box; }}
-    body {{ margin: 0; font-family: Arial, Helvetica, sans-serif; background: var(--light); color: var(--text); line-height: 1.7; }}
+
+    body {{
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--light);
+      color: var(--text);
+      line-height: 1.7;
+    }}
+
     a {{ color: var(--red); font-weight: 800; }}
 
-    .topbar {{ background: #030d1b; color: #cbd7e8; padding: 14px 6%; font-size: .92rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }}
+    .topbar {{
+      background: #030d1b;
+      color: #cbd7e8;
+      padding: 14px 6%;
+      font-size: .92rem;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }}
+
     .topbar a {{ color: #f0dba1; text-decoration: none; }}
 
-    .hero {{ background: linear-gradient(90deg, rgba(6,27,54,.95), rgba(6,27,54,.60)), url('{escape_attr(post["image_url"])}') center/cover; color: white; padding: 98px 6%; }}
+    .hero {{
+      background:
+        linear-gradient(90deg, rgba(6,27,54,.95), rgba(6,27,54,.60)),
+        url('{escape_attr(post["image_url"])}') center/cover;
+      color: white;
+      padding: 98px 6%;
+    }}
+
     .hero-inner {{ max-width: 1160px; margin: auto; }}
-    .eyebrow {{ color: #f0dba1; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; font-size: .85rem; margin-bottom: 14px; }}
-    h1 {{ font-size: clamp(2.2rem, 5vw, 4.9rem); line-height: 1.02; margin: 0; max-width: 1060px; letter-spacing: -1px; }}
+
+    .eyebrow {{
+      color: #f0dba1;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-size: .85rem;
+      margin-bottom: 14px;
+    }}
+
+    h1 {{
+      font-size: clamp(2.2rem, 5vw, 4.9rem);
+      line-height: 1.02;
+      margin: 0;
+      max-width: 1060px;
+      letter-spacing: -1px;
+    }}
+
     .meta {{ margin-top: 18px; color: #dbe6f3; font-weight: 700; }}
 
     .sharebar {{ margin-top: 24px; display: flex; flex-wrap: wrap; gap: 10px; }}
-    .sharebar a, .sharebar button {{ background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.24); color: white; border-radius: 999px; padding: 10px 14px; text-decoration: none; font-weight: 800; cursor: pointer; font: inherit; }}
+
+    .sharebar a,
+    .sharebar button {{
+      background: rgba(255,255,255,.14);
+      border: 1px solid rgba(255,255,255,.24);
+      color: white;
+      border-radius: 999px;
+      padding: 10px 14px;
+      text-decoration: none;
+      font-weight: 800;
+      cursor: pointer;
+      font: inherit;
+    }}
 
     main {{ max-width: 1160px; margin: -46px auto 0; padding: 0 6% 80px; }}
-    article {{ background: white; border-radius: 24px; box-shadow: var(--shadow); overflow: hidden; border: 1px solid var(--border); }}
+
+    article {{
+      background: white;
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }}
+
     .featured {{ width: 100%; height: 410px; object-fit: cover; display: block; }}
-    .content-wrap {{ display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 34px; padding: 46px; }}
-    .summary {{ font-size: 1.2rem; color: #344054; border-left: 6px solid var(--red); padding-left: 20px; margin: 0 0 32px; font-weight: 700; }}
+
+    .content-wrap {{
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 300px;
+      gap: 34px;
+      padding: 46px;
+    }}
+
+    .summary {{
+      font-size: 1.2rem;
+      color: #344054;
+      border-left: 6px solid var(--red);
+      padding-left: 20px;
+      margin: 0 0 32px;
+      font-weight: 700;
+    }}
 
     .article-body h2 {{ color: var(--navy); font-size: 1.95rem; line-height: 1.15; margin-top: 36px; }}
     .article-body h3 {{ color: var(--navy); margin-top: 24px; }}
@@ -494,46 +567,104 @@ def write_article_page(post):
     .article-body ul {{ padding-left: 24px; }}
     .article-body li {{ margin-bottom: 8px; }}
 
-    .article-image {{ margin: 34px 0; border-radius: 18px; overflow: hidden; box-shadow: 0 14px 32px rgba(15,23,42,.12); }}
+    .article-image {{
+      margin: 34px 0;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 14px 32px rgba(15,23,42,.12);
+    }}
+
     .article-image img {{ width: 100%; height: 320px; object-fit: cover; display: block; }}
     .article-image figcaption {{ font-size: .9rem; color: var(--muted); padding: 12px 16px; background: #f8fafc; }}
 
-    .info-box {{ margin: 34px 0; background: #f5f7fb; border: 1px solid var(--border); border-left: 6px solid var(--gold); border-radius: 18px; padding: 24px; }}
+    .info-box {{
+      margin: 34px 0;
+      background: #f5f7fb;
+      border: 1px solid var(--border);
+      border-left: 6px solid var(--gold);
+      border-radius: 18px;
+      padding: 24px;
+    }}
+
     .info-box h2 {{ margin-top: 0; font-size: 1.55rem; }}
 
     .sidebar {{ align-self: start; display: grid; gap: 18px; position: sticky; top: 20px; }}
-    .side-card {{ border: 1px solid var(--border); border-radius: 18px; padding: 22px; background: #f8fafc; }}
+
+    .side-card {{
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 22px;
+      background: #f8fafc;
+    }}
+
     .side-card.dark {{ background: var(--navy); color: white; border: 0; }}
     .side-card.dark p {{ color: #dbe6f3; }}
     .side-card h3 {{ margin-top: 0; color: var(--navy); }}
     .side-card.dark h3 {{ color: white; }}
     .side-card img {{ width: 100%; height: 165px; object-fit: cover; border-radius: 14px; margin-bottom: 14px; }}
+
     .contact-list {{ list-style: none; padding: 0; margin: 0; }}
     .contact-list li {{ margin-bottom: 8px; color: inherit; }}
     .contact-list a {{ color: #f0dba1; text-decoration: none; }}
 
-    .faq {{ margin-top: 42px; background: #f8fafc; border-radius: 20px; padding: 28px; border: 1px solid var(--border); }}
+    .faq {{
+      margin-top: 42px;
+      background: #f8fafc;
+      border-radius: 20px;
+      padding: 28px;
+      border: 1px solid var(--border);
+    }}
+
     .faq h2 {{ margin-top: 0; }}
     .faq-item {{ border-top: 1px solid var(--border); padding-top: 18px; margin-top: 18px; }}
     .faq-item h3 {{ margin: 0 0 8px; color: var(--navy); }}
 
-    .cta {{ margin-top: 42px; background: linear-gradient(135deg, var(--red), var(--navy)); color: white; border-radius: 20px; padding: 32px; }}
+    .cta {{
+      margin-top: 42px;
+      background: linear-gradient(135deg, var(--red), var(--navy));
+      color: white;
+      border-radius: 20px;
+      padding: 32px;
+    }}
+
     .cta h2 {{ color: white; margin-top: 0; }}
     .cta p {{ color: #e4edf8; margin-bottom: 18px; }}
-    .btn {{ display: inline-block; background: white; color: var(--navy); padding: 14px 20px; border-radius: 999px; text-decoration: none; font-weight: 900; text-transform: uppercase; font-size: .9rem; margin-right: 8px; margin-bottom: 8px; }}
+
+    .btn {{
+      display: inline-block;
+      background: white;
+      color: var(--navy);
+      padding: 14px 20px;
+      border-radius: 999px;
+      text-decoration: none;
+      font-weight: 900;
+      text-transform: uppercase;
+      font-size: .9rem;
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }}
+
     .btn-red {{ background: var(--red); color: white; }}
 
     footer {{ text-align: center; padding: 36px 6%; color: var(--muted); }}
     footer a {{ color: var(--red); text-decoration: none; }}
 
-    @media (max-width: 900px) {{ .content-wrap {{ grid-template-columns: 1fr; }} .sidebar {{ position: static; }} }}
-    @media (max-width: 760px) {{ .content-wrap {{ padding: 28px; }} .featured, .article-image img {{ height: 240px; }} .topbar {{ display: block; }} }}
+    @media (max-width: 900px) {{
+      .content-wrap {{ grid-template-columns: 1fr; }}
+      .sidebar {{ position: static; }}
+    }}
+
+    @media (max-width: 760px) {{
+      .content-wrap {{ padding: 28px; }}
+      .featured, .article-image img {{ height: 240px; }}
+      .topbar {{ display: block; }}
+    }}
   </style>
 </head>
 <body>
   <div class="topbar">
     <div>Dan Marovich · RE/MAX Ace Realty</div>
-    <div><a href="{CONTACT_PHONE_TEL}">{CONTACT_PHONE}</a> · <a href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a> · <a href="{MAIN_WEBSITE}">DMSellsRE.com</a></div>
+    <div><a href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a> · <a href="{MAIN_WEBSITE}">DMSellsRE.com</a></div>
   </div>
 
   <section class="hero">
@@ -576,7 +707,6 @@ def write_article_page(post):
             <h2>Ready to Talk Real Estate?</h2>
             <p>Whether you are buying, selling, renting, leasing, investing, or exploring property management, Dan Marovich can help you understand your options in Southeastern Pennsylvania.</p>
             <a class="btn" href="{MAIN_WEBSITE}/contact">Contact Dan</a>
-            <a class="btn btn-red" href="{CONTACT_PHONE_TEL}">Call {CONTACT_PHONE}</a>
           </div>
         </div>
 
@@ -585,7 +715,6 @@ def write_article_page(post):
             <h3>Contact Dan Marovich</h3>
             <p>RE/MAX Ace Realty</p>
             <ul class="contact-list">
-              <li><strong>Phone:</strong> <a href="{CONTACT_PHONE_TEL}">{CONTACT_PHONE}</a></li>
               <li><strong>Email:</strong> <a href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a></li>
               <li><strong>Website:</strong> <a href="{MAIN_WEBSITE}">DMSellsRE.com</a></li>
             </ul>
@@ -608,7 +737,7 @@ def write_article_page(post):
   </main>
 
   <footer>
-    Dan Marovich · RE/MAX Ace Realty · <a href="{CONTACT_PHONE_TEL}">{CONTACT_PHONE}</a> · <a href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a><br>
+    Dan Marovich · RE/MAX Ace Realty · <a href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a><br>
     <a href="{MAIN_WEBSITE}">Visit DMSellsRE.com</a>
   </footer>
 </body>
@@ -636,7 +765,7 @@ def build_faq_html(post):
             },
             {
                 "question": "How can I get started?",
-                "answer": f"You can contact Dan Marovich at {CONTACT_PHONE} or {CONTACT_EMAIL} to discuss your goals and the best next step.",
+                "answer": f"You can contact Dan Marovich at {CONTACT_EMAIL} to discuss your goals and the best next step.",
             },
         ]
 
@@ -648,7 +777,6 @@ def build_faq_html(post):
         html_parts.append(f'<div class="faq-item"><h3>{question}</h3><p>{answer}</p></div>')
 
     html_parts.append("</section>")
-
     return "\n".join(html_parts)
 
 
@@ -698,15 +826,21 @@ def write_index(posts):
     cards = ""
 
     for post in posts:
+        category_class = "commercial" if "Commercial" in post.get("category", "") else "residential"
         cards += f"""
         <article class="card">
-          <img src="{escape_attr(post["image_url"])}" alt="{escape_attr(post["title"])}">
+          <a class="image-link" href="posts/{escape_attr(post["filename"])}">
+            <img src="{escape_attr(post["image_url"])}" alt="{escape_attr(post["title"])}">
+          </a>
           <div class="body">
-            <div class="category">{escape_html(post["category"])}</div>
+            <div class="topline">
+              <span class="date">{display_date(post["date"])}</span>
+              <span class="badge {category_class}">{escape_html(post["category"].replace(" Real Estate", ""))}</span>
+            </div>
             <h2><a href="posts/{escape_attr(post["filename"])}">{escape_html(post["title"])}</a></h2>
             <p>{escape_html(post["description"])}</p>
-            <div class="card-meta">{display_date(post["date"])} · {escape_html(str(post.get("reading_time", "5")))} min read</div>
-            <a class="read" href="posts/{escape_attr(post["filename"])}">Read Article →</a>
+            <div class="card-meta">{escape_html(str(post.get("reading_time", "5")))} min read · By Dan Marovich · RE/MAX Ace Realty</div>
+            <a class="read {category_class}" href="posts/{escape_attr(post["filename"])}">Continue Reading →</a>
           </div>
         </article>
 """
@@ -724,37 +858,176 @@ def write_index(posts):
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DMSellsRE Real Estate Blog</title>
+  <title>Real Estate Blog</title>
   <meta name="description" content="Residential and commercial real estate insights from Dan Marovich, RE/MAX Ace Realty.">
   <style>
-    body {{ margin: 0; font-family: Arial, Helvetica, sans-serif; background: #f5f7fb; color: #172033; line-height: 1.6; }}
-    header {{ background: linear-gradient(135deg, rgba(6,27,54,.96), rgba(181,18,27,.88)); color: white; padding: 78px 6%; text-align: center; }}
-    header h1 {{ margin: 0; font-size: clamp(2rem, 4vw, 4rem); }}
-    header p {{ color: #dbe6f3; max-width: 850px; margin: 14px auto 0; }}
-    .header-links {{ margin-top: 22px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }}
-    .header-links a {{ background: white; color: #061b36; padding: 12px 16px; border-radius: 999px; text-decoration: none; font-weight: 900; text-transform: uppercase; font-size: .85rem; }}
-    main {{ padding: 54px 6%; max-width: 1240px; margin: auto; }}
-    .grid {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 28px; }}
-    .card {{ background: white; border-radius: 22px; overflow: hidden; box-shadow: 0 14px 35px rgba(15,23,42,.11); border: 1px solid #e4e8f0; }}
-    .card img {{ width: 100%; height: 280px; object-fit: cover; display: block; }}
-    .body {{ padding: 28px; }}
-    .category {{ color: #b5121b; text-transform: uppercase; font-size: .8rem; letter-spacing: 1px; font-weight: 900; }}
-    h2 {{ margin: 8px 0 10px; line-height: 1.15; }}
-    a {{ color: #061b36; text-decoration: none; }}
-    .card-meta {{ color: #667085; font-size: .92rem; margin: 14px 0; }}
-    .read {{ color: #b5121b; font-weight: 900; text-transform: uppercase; font-size: .9rem; }}
-    .empty {{ background: white; border-radius: 20px; padding: 32px; box-shadow: 0 14px 35px rgba(15,23,42,.10); }}
-    @media (max-width: 800px) {{ .grid {{ grid-template-columns: 1fr; }} }}
+    :root {{
+      --navy: #061b36;
+      --red: #b5121b;
+      --light: #f7f9fc;
+      --text: #172033;
+      --muted: #667085;
+      --border: #e4e8f0;
+      --shadow: 0 16px 38px rgba(15,23,42,.10);
+    }}
+
+    * {{ box-sizing: border-box; }}
+
+    body {{
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: white;
+      color: var(--text);
+      line-height: 1.6;
+    }}
+
+    header {{
+      padding: 44px 6% 18px;
+      background: white;
+    }}
+
+    .header-inner {{
+      max-width: 1180px;
+      margin: 0 auto;
+    }}
+
+    h1 {{
+      margin: 0;
+      color: var(--navy);
+      font-size: clamp(2.1rem, 4vw, 3.8rem);
+      line-height: 1;
+      letter-spacing: -1px;
+    }}
+
+    main {{
+      padding: 28px 6% 70px;
+      max-width: 1180px;
+      margin: auto;
+    }}
+
+    .grid {{
+      display: grid;
+      gap: 34px;
+    }}
+
+    .card {{
+      display: grid;
+      grid-template-columns: 40% 1fr;
+      gap: 34px;
+      align-items: center;
+      padding: 0 0 34px;
+      border-bottom: 1px solid var(--border);
+    }}
+
+    .image-link {{
+      display: block;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      background: #eef2f7;
+    }}
+
+    .card img {{
+      width: 100%;
+      height: 310px;
+      object-fit: cover;
+      display: block;
+      transition: transform .25s ease;
+    }}
+
+    .card:hover img {{
+      transform: scale(1.03);
+    }}
+
+    .body {{
+      padding: 8px 0;
+    }}
+
+    .topline {{
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-size: .95rem;
+    }}
+
+    .badge {{
+      display: inline-block;
+      color: white;
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: .78rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+    }}
+
+    .badge.commercial, .read.commercial {{
+      background: var(--navy);
+    }}
+
+    .badge.residential, .read.residential {{
+      background: var(--red);
+    }}
+
+    h2 {{
+      margin: 0 0 14px;
+      font-size: clamp(1.65rem, 3vw, 2.65rem);
+      line-height: 1.08;
+      color: var(--navy);
+    }}
+
+    h2 a {{
+      color: inherit;
+      text-decoration: none;
+    }}
+
+    p {{
+      margin: 0 0 16px;
+      font-size: 1.08rem;
+      color: #344054;
+    }}
+
+    .card-meta {{
+      color: var(--muted);
+      font-size: .95rem;
+      margin: 16px 0 20px;
+    }}
+
+    .read {{
+      display: inline-block;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      padding: 13px 18px;
+      font-weight: 900;
+    }}
+
+    .empty {{
+      background: var(--light);
+      border-radius: 20px;
+      padding: 32px;
+      border: 1px solid var(--border);
+    }}
+
+    @media (max-width: 800px) {{
+      .card {{
+        grid-template-columns: 1fr;
+        gap: 18px;
+      }}
+
+      .card img {{
+        height: 260px;
+      }}
+    }}
   </style>
 </head>
 <body>
   <header>
-    <h1>DMSellsRE Real Estate Blog</h1>
-    <p>Residential, commercial, leasing, property management, and investment real estate insights from Dan Marovich.</p>
-    <div class="header-links">
-      <a href="{MAIN_WEBSITE}">Visit Website</a>
-      <a href="{MAIN_WEBSITE}/contact">Contact Dan</a>
-      <a href="{CONTACT_PHONE_TEL}">Call {CONTACT_PHONE}</a>
+    <div class="header-inner">
+      <h1>Real Estate Blog</h1>
     </div>
   </header>
 
@@ -772,15 +1045,6 @@ def write_index(posts):
 
 
 def write_feed(posts):
-    """
-    GoDaddy-friendly RSS feed.
-
-    Important:
-    - Do NOT place raw <img> HTML inside description/content because GoDaddy may display
-      the tag as text in the blog preview.
-    - Keep RSS preview text clean and clickable.
-    - Full article pages still include photos, sidebar, share buttons, SEO, schema, and full content.
-    """
     posts = sorted(posts, key=lambda p: p.get("date", ""), reverse=True)[:MAX_POSTS_IN_FEED]
 
     rss = ET.Element(
@@ -795,17 +1059,12 @@ def write_feed(posts):
 
     add_text(channel, "title", SITE_NAME)
     add_text(channel, "link", SITE_URL + "/")
-    add_text(
-        channel,
-        "description",
-        "Residential and commercial real estate articles from Dan Marovich, RE/MAX Ace Realty.",
-    )
+    add_text(channel, "description", "Residential and commercial real estate articles from Dan Marovich, RE/MAX Ace Realty.")
     add_text(channel, "language", "en-us")
     add_text(channel, "lastBuildDate", format_datetime(datetime.now(timezone.utc), usegmt=True))
 
     for post in posts:
         item = ET.SubElement(channel, "item")
-
         category_label = post.get("category", "Real Estate")
         read_time = str(post.get("reading_time", estimate_reading_time(post.get("content", ""))))
         clean_description = build_feed_preview(post)
@@ -818,11 +1077,8 @@ def write_feed(posts):
 
         add_text(item, "pubDate", format_datetime(datetime.fromisoformat(post["date"]), usegmt=True))
         add_text(item, "category", category_label)
-
-        # Plain text only. This is what GoDaddy usually uses for the visible blog preview.
         add_text(item, "description", clean_description)
 
-        # Keep content clean and text-focused so GoDaddy does not print raw HTML tags in preview.
         content_text = f"""
 {post["title"]}
 
@@ -835,7 +1091,6 @@ Read the complete article:
 {post["link"]}
 
 Contact Dan Marovich, RE/MAX Ace Realty:
-Phone: {CONTACT_PHONE}
 Email: {CONTACT_EMAIL}
 Website: {MAIN_WEBSITE}
 """
@@ -845,7 +1100,6 @@ Website: {MAIN_WEBSITE}
 
     rough = ET.tostring(rss, encoding="utf-8")
     pretty = minidom.parseString(rough).toprettyxml(indent="  ", encoding="UTF-8").decode("utf-8")
-
     pretty = pretty.replace("__CDATA_START__", "<![CDATA[")
     pretty = pretty.replace("__CDATA_END__", "]]>")
 
@@ -854,9 +1108,6 @@ Website: {MAIN_WEBSITE}
 
 
 def build_feed_preview(post):
-    """
-    Creates a clean, attractive GoDaddy preview without raw HTML.
-    """
     category = post.get("category", "Real Estate")
     description = strip_html(post.get("description", ""))
     content_text = strip_html(post.get("content", ""))
@@ -884,9 +1135,6 @@ def build_feed_preview(post):
 
 
 def strip_html(value):
-    """
-    Converts article HTML to plain text for clean RSS previews.
-    """
     text = str(value or "")
     text = re.sub(r"<script.*?</script>", " ", text, flags=re.S | re.I)
     text = re.sub(r"<style.*?</style>", " ", text, flags=re.S | re.I)
