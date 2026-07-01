@@ -2,8 +2,6 @@ name: Generate Real Estate Blog Posts
 
 on:
   schedule:
-    # Runs at 12:00 and 13:00 UTC on Monday and Friday.
-    # The Python script checks America/New_York and only posts at 8 AM Eastern.
     - cron: "0 12,13 * * 1,5"
   workflow_dispatch:
     inputs:
@@ -23,29 +21,24 @@ permissions:
 jobs:
   generate-post:
     runs-on: ubuntu-latest
-
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
       - name: Install dependencies
         run: pip install -r requirements.txt
-
-      - name: Generate post and rebuild RSS feed
+      - name: Generate article page and RSS feed
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           POST_TYPE: ${{ github.event.inputs.post_type || 'auto' }}
         run: python scripts/generate_feed.py
-
-      - name: Commit updated feed and posts
+      - name: Commit updated blog files
         run: |
           git config user.name "DMSellsRE Blog Bot"
           git config user.email "actions@github.com"
-          git add feed.xml posts.json
-          git commit -m "Update DMSellsRE blog feed" || echo "No changes to commit"
+          git add feed.xml posts.json index.html posts/
+          git commit -m "Generate new real estate blog article" || echo "No changes to commit"
           git push
