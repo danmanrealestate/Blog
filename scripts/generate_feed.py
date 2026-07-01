@@ -841,6 +841,7 @@ def write_index(posts):
             <div class="topline">
               <span class="date">{display_date(featured["date"])}</span>
               <span class="badge {featured_class}">{escape_html(featured["category"].replace(" Real Estate", ""))}</span>
+              <span class="featured-label">Featured Article</span>
             </div>
             <h2><a href="posts/{escape_attr(featured["filename"])}">{escape_html(featured["title"])}</a></h2>
             <p>{escape_html(featured["description"])}</p>
@@ -864,7 +865,7 @@ def write_index(posts):
             </div>
             <h2><a href="posts/{escape_attr(post["filename"])}">{escape_html(post["title"])}</a></h2>
             <p>{escape_html(post["description"])}</p>
-            <div class="card-meta">{escape_html(str(post.get("reading_time", "5")))} min read · By Dan Marovich · RE/MAX Ace Realty</div>
+            <div class="card-meta">{escape_html(str(post.get("reading_time", "5")))} min read · By Dan Marovich</div>
             <a class="read {category_class}" href="posts/{escape_attr(post["filename"])}">Continue Reading →</a>
           </div>
         </article>
@@ -878,26 +879,6 @@ def write_index(posts):
         </div>
 """
 
-    social_rows = ""
-    for post in posts[:4]:
-        if post.get("facebook_post") or post.get("linkedin_post") or post.get("x_post"):
-            social_rows += f"""
-            <div class="social-card">
-              <h3>{escape_html(post["title"])}</h3>
-              <p><strong>Facebook:</strong> {escape_html(post.get("facebook_post", ""))}</p>
-              <p><strong>LinkedIn:</strong> {escape_html(post.get("linkedin_post", ""))}</p>
-              <p><strong>X:</strong> {escape_html(post.get("x_post", ""))}</p>
-            </div>
-"""
-
-    if not social_rows:
-        social_rows = """
-            <div class="social-card">
-              <h3>Social Media Drafts</h3>
-              <p>New articles will automatically include Facebook, LinkedIn, and X post drafts going forward.</p>
-            </div>
-"""
-
     index = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -908,9 +889,11 @@ def write_index(posts):
   <style>
     :root {{
       --navy: #061b36;
+      --blue: #0b3d75;
       --red: #b5121b;
       --gold: #c7a45a;
       --light: #f7f9fc;
+      --white: #ffffff;
       --text: #172033;
       --muted: #667085;
       --border: #e4e8f0;
@@ -927,28 +910,91 @@ def write_index(posts):
       line-height: 1.6;
     }}
 
-    header {{
-      padding: 44px 6% 18px;
-      background: white;
+    a {{
+      color: inherit;
     }}
 
-    .header-inner {{
-      max-width: 1180px;
+    .hero-header {{
+      background:
+        linear-gradient(135deg, rgba(6,27,54,.98), rgba(181,18,27,.88)),
+        url('https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1800&q=80') center/cover;
+      color: white;
+      padding: 74px 6% 64px;
+      text-align: center;
+    }}
+
+    .hero-inner {{
+      max-width: 1040px;
       margin: 0 auto;
+    }}
+
+    .eyebrow {{
+      color: #f0dba1;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-size: .86rem;
+      margin-bottom: 14px;
     }}
 
     h1 {{
       margin: 0;
-      color: var(--navy);
-      font-size: clamp(2.1rem, 4vw, 3.8rem);
-      line-height: 1;
-      letter-spacing: -1px;
+      font-size: clamp(2.4rem, 5vw, 5rem);
+      line-height: .96;
+      letter-spacing: -2px;
+    }}
+
+    .hero-header p {{
+      color: #e4edf8;
+      max-width: 820px;
+      margin: 18px auto 0;
+      font-size: 1.15rem;
+    }}
+
+    .quick-filters {{
+      margin-top: 26px;
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }}
+
+    .quick-filters span {{
+      border: 1px solid rgba(255,255,255,.32);
+      background: rgba(255,255,255,.12);
+      color: white;
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-weight: 800;
+      font-size: .9rem;
     }}
 
     main {{
-      padding: 28px 6% 70px;
-      max-width: 1180px;
+      padding: 46px 6% 70px;
+      max-width: 1220px;
       margin: auto;
+    }}
+
+    .section-heading {{
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: end;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }}
+
+    .section-heading h2 {{
+      margin: 0;
+      color: var(--navy);
+      font-size: clamp(1.7rem, 3vw, 2.4rem);
+      line-height: 1.05;
+    }}
+
+    .section-heading p {{
+      margin: 0;
+      color: var(--muted);
+      max-width: 560px;
     }}
 
     .featured-post {{
@@ -960,7 +1006,7 @@ def write_index(posts):
       border: 1px solid var(--border);
       border-radius: 24px;
       padding: 24px;
-      margin-bottom: 42px;
+      margin-bottom: 46px;
       box-shadow: var(--shadow);
     }}
 
@@ -973,9 +1019,10 @@ def write_index(posts):
 
     .featured-image img {{
       width: 100%;
-      height: 390px;
+      height: 410px;
       object-fit: cover;
       display: block;
+      transition: transform .25s ease;
     }}
 
     .featured-body h2 {{
@@ -983,6 +1030,16 @@ def write_index(posts):
       font-size: clamp(2rem, 3.6vw, 3.2rem);
       line-height: 1.04;
       color: var(--navy);
+    }}
+
+    .featured-body h2 a,
+    .card h2 a {{
+      text-decoration: none;
+    }}
+
+    .featured-post:hover img,
+    .card:hover img {{
+      transform: scale(1.03);
     }}
 
     .grid {{
@@ -1015,11 +1072,6 @@ def write_index(posts):
       transition: transform .25s ease;
     }}
 
-    .card:hover img,
-    .featured-post:hover img {{
-      transform: scale(1.03);
-    }}
-
     .body {{
       padding: 8px 0;
     }}
@@ -1034,7 +1086,8 @@ def write_index(posts):
       font-size: .95rem;
     }}
 
-    .badge {{
+    .badge,
+    .featured-label {{
       display: inline-block;
       color: white;
       border-radius: 6px;
@@ -1045,11 +1098,18 @@ def write_index(posts):
       letter-spacing: .4px;
     }}
 
-    .badge.commercial, .read.commercial {{
+    .featured-label {{
+      background: var(--gold);
+      color: #061b36;
+    }}
+
+    .badge.commercial,
+    .read.commercial {{
       background: var(--navy);
     }}
 
-    .badge.residential, .read.residential {{
+    .badge.residential,
+    .read.residential {{
       background: var(--red);
     }}
 
@@ -1058,11 +1118,6 @@ def write_index(posts):
       font-size: clamp(1.65rem, 3vw, 2.65rem);
       line-height: 1.08;
       color: var(--navy);
-    }}
-
-    h2 a {{
-      color: inherit;
-      text-decoration: none;
     }}
 
     p {{
@@ -1086,39 +1141,77 @@ def write_index(posts):
       font-weight: 900;
     }}
 
-    .marketing-tools {{
-      margin-top: 50px;
+    .insights-panel {{
+      margin-top: 56px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }}
+
+    .panel-card {{
       background: var(--light);
       border: 1px solid var(--border);
-      border-radius: 24px;
+      border-radius: 22px;
       padding: 28px;
     }}
 
-    .marketing-tools h2 {{
-      margin-top: 0;
-      font-size: 2rem;
+    .panel-card.dark {{
+      background: var(--navy);
+      color: white;
+      border: 0;
     }}
 
-    .social-grid {{
+    .panel-card h2 {{
+      margin-top: 0;
+    }}
+
+    .panel-card.dark h2,
+    .panel-card.dark p,
+    .panel-card.dark li {{
+      color: white;
+    }}
+
+    .panel-card ul {{
+      margin: 0;
+      padding-left: 20px;
+    }}
+
+    .panel-card li {{
+      margin-bottom: 10px;
+      color: #344054;
+    }}
+
+    .cta-strip {{
+      margin-top: 52px;
+      background: linear-gradient(135deg, var(--red), var(--navy));
+      border-radius: 24px;
+      color: white;
+      padding: 34px;
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 18px;
+      grid-template-columns: 1fr auto;
+      gap: 24px;
+      align-items: center;
     }}
 
-    .social-card {{
+    .cta-strip h2 {{
+      color: white;
+      margin: 0 0 8px;
+    }}
+
+    .cta-strip p {{
+      color: #e4edf8;
+      margin: 0;
+    }}
+
+    .cta-strip a {{
       background: white;
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 20px;
-    }}
-
-    .social-card h3 {{
-      margin-top: 0;
       color: var(--navy);
-    }}
-
-    .social-card p {{
-      font-size: .96rem;
+      border-radius: 999px;
+      padding: 13px 18px;
+      text-decoration: none;
+      font-weight: 900;
+      text-transform: uppercase;
+      white-space: nowrap;
     }}
 
     .empty {{
@@ -1130,7 +1223,9 @@ def write_index(posts):
 
     @media (max-width: 900px) {{
       .featured-post,
-      .card {{
+      .card,
+      .insights-panel,
+      .cta-strip {{
         grid-template-columns: 1fr;
         gap: 18px;
       }}
@@ -1139,33 +1234,66 @@ def write_index(posts):
       .card img {{
         height: 270px;
       }}
-
-      .social-grid {{
-        grid-template-columns: 1fr;
-      }}
     }}
   </style>
 </head>
 <body>
-  <header>
-    <div class="header-inner">
+  <header class="hero-header">
+    <div class="hero-inner">
+      <div class="eyebrow">Southeastern Pennsylvania Market Insights</div>
       <h1>Real Estate Blog</h1>
+      <p>Residential, commercial, leasing, investment, and property management guidance for buyers, sellers, landlords, business owners, and investors.</p>
+      <div class="quick-filters">
+        <span>Residential</span>
+        <span>Commercial</span>
+        <span>Investing</span>
+        <span>Property Management</span>
+        <span>Chester County</span>
+      </div>
     </div>
   </header>
 
   <main>
+    <div class="section-heading">
+      <h2>Featured Market Insight</h2>
+      <p>Fresh real estate articles are automatically published every Monday and Friday.</p>
+    </div>
+
     {featured_html}
+
+    <div class="section-heading">
+      <h2>Latest Articles</h2>
+      <p>Browse recent residential and commercial real estate guidance from Dan Marovich.</p>
+    </div>
 
     <div class="grid">
       {cards}
     </div>
 
-    <section class="marketing-tools">
-      <h2>Social Media Post Drafts</h2>
-      <p>These draft posts are automatically generated with new articles and can be copied into Facebook, LinkedIn, or X.</p>
-      <div class="social-grid">
-        {social_rows}
+    <section class="insights-panel">
+      <div class="panel-card">
+        <h2>Popular Topics</h2>
+        <ul>
+          <li>Buying and selling homes in Chester County</li>
+          <li>Commercial leasing and investment property decisions</li>
+          <li>Residential rentals and landlord preparation</li>
+          <li>Property management and long-term asset planning</li>
+        </ul>
       </div>
+
+      <div class="panel-card dark">
+        <h2>Work With Dan</h2>
+        <p>Need help with residential, commercial, leasing, investment, or property management decisions?</p>
+        <p><strong>Dan Marovich</strong><br>RE/MAX Ace Realty<br>{CONTACT_EMAIL}</p>
+      </div>
+    </section>
+
+    <section class="cta-strip">
+      <div>
+        <h2>Have a Real Estate Question?</h2>
+        <p>Start with a direct conversation about your goals, timing, and property needs.</p>
+      </div>
+      <a href="{MAIN_WEBSITE}/contact">Contact Dan</a>
     </section>
   </main>
 </body>
