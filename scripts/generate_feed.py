@@ -242,5 +242,3 @@ def display_date(v):
     except Exception: return ""
 if __name__ == "__main__": main()
 
-
-    main()
