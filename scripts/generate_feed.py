@@ -138,12 +138,12 @@ def main():
     local_now = datetime.now(ZoneInfo(TIMEZONE))
 
     if post_type == "auto":
-        if local_now.weekday() == 0 and local_now.hour == 8:
+        if local_now.weekday() == 0:
             post_type = "residential"
-        elif local_now.weekday() == 4 and local_now.hour == 8:
+        elif local_now.weekday() == 4:
             post_type = "commercial"
         else:
-            print(f"No post scheduled now. Local time: {local_now.isoformat()}")
+            print(f"No post scheduled today. Local time: {local_now.isoformat()}")
             rebuild_all()
             return
 
@@ -159,7 +159,7 @@ def main():
     today_key = local_now.strftime("%Y-%m-%d")
 
     if any(p.get("date_key") == today_key and p.get("category") == category for p in posts):
-        print(f"{category} post already exists for {today_key}. Rebuilding with Version 5 template.")
+        print(f"{category} post already exists for {today_key}. Rebuilding with current template.")
         rebuild_all()
         return
 
@@ -191,13 +191,16 @@ def main():
         "link": post_url,
         "author": AUTHOR,
         "reading_time": estimate_reading_time(article["content"]),
+        "facebook_post": article.get("facebook_post", ""),
+        "linkedin_post": article.get("linkedin_post", ""),
+        "x_post": article.get("x_post", ""),
     }
 
     posts.append(post)
     save_posts(posts)
     rebuild_all()
 
-    print(f"Created Version 5 article page: {post_url}")
+    print(f"Created new {category} article page: {post_url}")
 
 
 def load_posts():
