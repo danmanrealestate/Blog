@@ -1,0 +1,59 @@
+name: Generate and Publish Instagram Lesson
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "10 13 * * 1,3,5"
+
+permissions:
+  contents: write
+
+jobs:
+  generate-instagram:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements-instagram.txt
+
+      - name: Generate lesson and slides
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5-mini' }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python scripts/generate_instagram.py
+
+      - name: Commit generated lesson
+        run: |
+          git config user.name "actions-user"
+          git config user.email "actions@users.noreply.github.com"
+          git add instagram/
+          git diff --cached --quiet || git commit -m "Generate Instagram Commercial Investor Academy lesson"
+          git push
+
+      - name: Wait for GitHub Pages
+        run: sleep 90
+
+      - name: Send latest lesson to Make
+        env:
+          MAKE_INSTAGRAM_WEBHOOK: ${{ secrets.MAKE_INSTAGRAM_WEBHOOK }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload = json.load(open("instagram/latest.json", encoding="utf-8"))
+          req = urllib.request.Request(
+              os.environ["MAKE_INSTAGRAM_WEBHOOK"],
+              data=json.dumps(payload).encode("utf-8"),
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+          with urllib.request.urlopen(req, timeout=30) as r:
+              print(r.status, r.read().decode("utf-8", "ignore"))
+          PY
