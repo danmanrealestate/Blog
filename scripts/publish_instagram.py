@@ -75,7 +75,7 @@ def wait_for_container(container_id, attempts=20):
     )
 
 
-with open("instagram/latest.json", encoding="utf-8") as f:
+with open("instagram/lesson-008/manifest.json", encoding="utf-8") as f:
     lesson = json.load(f)
 
 
