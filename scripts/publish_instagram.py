@@ -5,7 +5,6 @@ import urllib.parse
 import urllib.request
 import urllib.error
 
-
 ACCESS_TOKEN = os.environ["INSTAGRAM_ACCESS_TOKEN"]
 INSTAGRAM_USER_ID = os.environ["INSTAGRAM_USER_ID"]
 
@@ -75,21 +74,29 @@ def wait_for_container(container_id, attempts=20):
     )
 
 
-with open("instagram/lesson-008/manifest.json", encoding="utf-8") as f:
-    lesson = json.load(f)
+# -------------------------------------------------
+# Load Lesson 8 specifically
+# -------------------------------------------------
 
+with open(
+    "instagram/lesson-008/manifest.json",
+    encoding="utf-8",
+) as f:
+    lesson = json.load(f)
 
 caption = lesson["caption"]
 files = lesson["files"]
 
 if not files:
-    raise RuntimeError("No slide images found in latest.json")
+    raise RuntimeError(
+        "No slide images found in Lesson 8 manifest."
+    )
 
 if len(files) > 10:
     raise RuntimeError(
-        f"Instagram carousel supports at most 10 items; found {len(files)}"
+        f"Instagram carousel supports at most 10 items; "
+        f"found {len(files)}"
     )
-
 
 print(
     f'Publishing Lesson {lesson["lesson"]}: '
@@ -106,9 +113,16 @@ print(f"Found {len(files)} slides.")
 children = []
 
 for number, item in enumerate(files, start=1):
-   image_url = item if isinstance(item, str) else item["photo"]
 
-    print(f"Creating slide {number}: {image_url}")
+    if isinstance(item, dict):
+        image_url = item["photo"]
+    else:
+        image_url = item
+
+    print(
+        f"Creating slide {number}: "
+        f"{image_url}"
+    )
 
     result = post(
         f"{INSTAGRAM_USER_ID}/media",
@@ -164,6 +178,10 @@ published = post(
 print("")
 print("SUCCESS")
 print(
-    f'Lesson {lesson["lesson"]} published to Instagram.'
+    f'Lesson {lesson["lesson"]} '
+    f'published to Instagram.'
 )
-print(f'Instagram media ID: {published["id"]}')
+print(
+    f'Instagram media ID: '
+    f'{published["id"]}'
+)
