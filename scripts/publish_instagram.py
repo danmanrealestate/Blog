@@ -106,7 +106,7 @@ print(f"Found {len(files)} slides.")
 children = []
 
 for number, item in enumerate(files, start=1):
-    image_url = item["photo"]
+   image_url = item if isinstance(item, str) else item["photo"]
 
     print(f"Creating slide {number}: {image_url}")
 
