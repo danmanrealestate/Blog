@@ -1,15 +1,13 @@
-name: Generate and Publish Instagram Lesson
+name: Publish Instagram Lesson 8
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "10 13 * * 1,3,5"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  generate-instagram:
+  publish-instagram:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,28 +19,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install dependencies
-        run: pip install -r requirements-instagram.txt
-
-      - name: Generate lesson and slides
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5-mini' }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-        run: python scripts/generate_instagram.py
-
-      - name: Commit generated lesson
-        run: |
-          git config user.name "actions-user"
-          git config user.email "actions@users.noreply.github.com"
-          git add instagram/
-          git diff --cached --quiet || git commit -m "Generate Instagram Commercial Investor Academy lesson"
-          git push
-
-      - name: Wait for GitHub Pages
-        run: sleep 90
-
-      - name: Publish lesson to Instagram
+      - name: Publish Lesson 8 to Instagram
         env:
           INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
           INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
