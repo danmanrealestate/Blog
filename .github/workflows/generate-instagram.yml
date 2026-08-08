@@ -1,10 +1,12 @@
-name: Publish Instagram Lesson 8
+name: Publish Instagram Lessons Sequentially
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "10 13 * * 1,3,5"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   publish-instagram:
@@ -19,8 +21,16 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Publish Lesson 8 to Instagram
+      - name: Publish next lesson to Instagram
         env:
           INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
           INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
         run: python scripts/publish_instagram.py
+
+      - name: Save Instagram publish state
+        run: |
+          git config user.name "actions-user"
+          git config user.email "actions@users.noreply.github.com"
+          git add instagram/publish_state.json
+          git diff --cached --quiet || git commit -m "Update Instagram publish state"
+          git push
