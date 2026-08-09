@@ -1,0 +1,39 @@
+name: Repair Instagram Lesson 8
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair-lesson-8:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements-instagram.txt
+
+      - name: Regenerate Lesson 8 graphics
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5-mini' }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          REGENERATE_LESSON: "8"
+        run: python scripts/generate_instagram.py
+
+      - name: Commit repaired Lesson 8
+        run: |
+          git config user.name "actions-user"
+          git config user.email "actions@users.noreply.github.com"
+          git add instagram/lesson-008/
+          git diff --cached --quiet || git commit -m "Repair Instagram Lesson 8 graphics"
+          git push
