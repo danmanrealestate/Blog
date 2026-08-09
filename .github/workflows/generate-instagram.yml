@@ -2,6 +2,11 @@ name: Publish Instagram Lessons Sequentially
 
 on:
   workflow_dispatch:
+    inputs:
+      lesson_number:
+        description: "Optional lesson number for a one-time manual repost. Leave blank for normal sequential publishing."
+        required: false
+        type: string
   schedule:
     - cron: "10 13 * * 1,3,5"
 
@@ -21,13 +26,23 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Publish next lesson to Instagram
+      - name: Publish specific lesson manually
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.lesson_number != '' }}
+        env:
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          LESSON_NUMBER: ${{ inputs.lesson_number }}
+        run: python scripts/publish_specific_instagram.py
+
+      - name: Publish next sequential lesson
+        if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.lesson_number == '') }}
         env:
           INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
           INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
         run: python scripts/publish_instagram.py
 
       - name: Save Instagram publish state
+        if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.lesson_number == '') }}
         run: |
           git config user.name "actions-user"
           git config user.email "actions@users.noreply.github.com"
