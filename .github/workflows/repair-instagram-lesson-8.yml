@@ -1,13 +1,18 @@
-name: Repair Instagram Lesson 8
+name: Repair Instagram Lesson Graphics
 
 on:
   workflow_dispatch:
+    inputs:
+      lesson_number:
+        description: "Lesson number to regenerate without changing sequential publish state"
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 jobs:
-  repair-lesson-8:
+  repair-lesson:
     runs-on: ubuntu-latest
 
     steps:
@@ -22,18 +27,21 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements-instagram.txt
 
-      - name: Regenerate Lesson 8 graphics
+      - name: Regenerate lesson graphics
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5-mini' }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          REGENERATE_LESSON: "8"
+          REGENERATE_LESSON: ${{ inputs.lesson_number }}
         run: python scripts/generate_instagram.py
 
-      - name: Commit repaired Lesson 8
+      - name: Commit repaired lesson
+        env:
+          LESSON_NUMBER: ${{ inputs.lesson_number }}
         run: |
           git config user.name "actions-user"
           git config user.email "actions@users.noreply.github.com"
-          git add instagram/lesson-008/
-          git diff --cached --quiet || git commit -m "Repair Instagram Lesson 8 graphics"
+          PADDED=$(printf "%03d" "$LESSON_NUMBER")
+          git add "instagram/lesson-${PADDED}/"
+          git diff --cached --quiet || git commit -m "Repair Instagram Lesson ${LESSON_NUMBER} graphics"
           git push
