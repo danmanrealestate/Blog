@@ -1,16 +1,30 @@
 {
   "lesson": 11,
   "topic": "Understanding Cash-on-Cash Return",
-  "created_at": "2026-08-04T03:01:21.068392+00:00",
-  "caption": "Cash-on-Cash Return is one of the most practical first-line metrics for commercial investors, landlords, building owners, and business owners evaluating income properties in Chester County and Montgomery County. It answers a simple question: 'What percentage cash yield am I getting on the dollars I actually put into this deal this year?' To calculate it, divide annual before-tax cash flow (net rents minus operating expenses and debt service) by total cash invested (down payment, closing costs, initial repairs, and reserves). Use CoC to compare financing scenarios, evaluate offers quickly, and set cash-flow-driven investment criteria. Remember its limits: CoC is a single-year, cash-focused measure and does not capture appreciation, principal paydown, or tax benefits. For deal analysis templates, calculators, and local guidance tailored to Chester and Montgomery County properties, visit dmsellscre.com/investors and start building deal-ready projections today.\n\n#CommercialRealEstate #CashOnCashReturn #CRE #ChesterCountyPA #MontgomeryCountyPA #RealEstateInvesting #Landlord #PropertyManagement #PassiveIncome #InvestmentProperty #CommercialInvesting #RealEstateFinance #Multifamily #ValueAdd #RentalIncome",
-  "engagement_question": "What Cash-on-Cash return target do you use when screening deals in Chester or Montgomery County, and how do you adjust it for financing or rehab risk?",
+  "created_at": "2026-08-11T00:15:52.388118+00:00",
+  "caption": "Cash-on-cash return is a straightforward, deal-level metric that helps investors understand how much pre-tax cash a property returns each year relative to the cash they actually put into it. To calculate it, divide annual pre-tax cash flow by total initial cash invested. Include down payment, immediate repairs, and acquisition fees; exclude principal paydown, appreciation, and tax items. In Chester and Montgomery counties, local taxes, insurance, and operating costs influence the cash flow side, so run region-specific expense estimates during due diligence. Use cash-on-cash alongside cap rate and long-term ROI for a complete view. Want help evaluating a local deal? Get guidance at dmsellscre.com/investors for personalized investor resources and checklists.\n\n#CommercialRealEstate #CREinvesting #CashOnCash #RealEstateInvesting #ChesterCounty #MontgomeryCounty #PennsylvaniaCRE #PropertyInvesting #LandlordTips #RentalIncome #InvestmentMetrics #CommercialLandlord #FinancialEducation #RealEstateFinance #SmallBusinessOwners",
+  "engagement_question": "How would you use cash-on-cash return when evaluating a local commercial property?",
   "files": [
-    "https://danmanrealestate.github.io/Blog/instagram/lesson-011/slide1.jpg",
-    "https://danmanrealestate.github.io/Blog/instagram/lesson-011/slide2.jpg",
-    "https://danmanrealestate.github.io/Blog/instagram/lesson-011/slide3.jpg",
-    "https://danmanrealestate.github.io/Blog/instagram/lesson-011/slide4.jpg",
-    "https://danmanrealestate.github.io/Blog/instagram/lesson-011/slide5.jpg",
-    "https://danmanrealestate.github.io/Blog/instagram/lesson-011/slide6.jpg",
-    "https://danmanrealestate.github.io/Blog/instagram/lesson-011/slide7.jpg"
+    {
+      "photo": "https://danmanrealestate.github.io/Blog/instagram/lesson-011/slide1.jpg"
+    },
+    {
+      "photo": "https://danmanrealestate.github.io/Blog/instagram/lesson-011/slide2.jpg"
+    },
+    {
+      "photo": "https://danmanrealestate.github.io/Blog/instagram/lesson-011/slide3.jpg"
+    },
+    {
+      "photo": "https://danmanrealestate.github.io/Blog/instagram/lesson-011/slide4.jpg"
+    },
+    {
+      "photo": "https://danmanrealestate.github.io/Blog/instagram/lesson-011/slide5.jpg"
+    },
+    {
+      "photo": "https://danmanrealestate.github.io/Blog/instagram/lesson-011/slide6.jpg"
+    },
+    {
+      "photo": "https://danmanrealestate.github.io/Blog/instagram/lesson-011/slide7.jpg"
+    }
   ]
 }
