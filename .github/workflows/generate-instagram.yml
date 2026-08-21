@@ -26,6 +26,31 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install lesson generation dependencies
+        if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.lesson_number == '') }}
+        run: pip install -r requirements-instagram.txt
+
+      - name: Generate next lesson and slides
+        if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.lesson_number == '') }}
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5-mini' }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python scripts/generate_instagram.py
+
+      - name: Commit generated lesson
+        if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.lesson_number == '') }}
+        run: |
+          git config user.name "actions-user"
+          git config user.email "actions@users.noreply.github.com"
+          git add instagram/
+          git diff --cached --quiet || git commit -m "Generate Instagram Commercial Investor Academy lesson"
+          git push
+
+      - name: Wait for GitHub Pages
+        if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.lesson_number == '') }}
+        run: sleep 90
+
       - name: Publish specific lesson manually
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.lesson_number != '' }}
         env:
