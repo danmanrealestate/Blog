@@ -70,7 +70,6 @@ def generate(lesson,topic):
 
 def save(im,p): im.save(p,'JPEG',quality=95,optimize=True)
 def cover(lesson,topic,a,p):
-    # Strong social hook, varied by lesson
     mode=lesson%3; im=Image.new('RGB',(W,H),NAVY if mode!=1 else WHITE); d=ImageDraw.Draw(im)
     hook='BEFORE YOU BUY...' if 'due diligence' in topic.lower() else ('WHAT WOULD YOU CHECK FIRST?' if mode==1 else 'DON’T JUST LOOK AT THE PRICE.')
     if mode==0:
@@ -102,20 +101,16 @@ def slide2(lesson,a,p):
         d.rectangle((75,660,1005,675),fill=RED); d.text((85,725),'INVESTOR TAKEAWAY',font=f(26,1),fill=NAVY); box(d,(85,790,990,1040),a['subtitle'],RED,39,24,1,5)
     footer(d); save(im,p)
 def cards(n,title,items,p,accent):
-    im=Image.new('RGB',(W,H),WHITE); d=ImageDraw.Draw(im); header(d,n,title)
-    # Alternating magazine-style cards instead of identical rows
-    y=195
+    im=Image.new('RGB',(W,H),WHITE); d=ImageDraw.Draw(im); header(d,n,title); y=195
     for i,it in enumerate(items):
         left=75 if i%2==0 else 255; right=825 if i%2==0 else 1005
         d.rounded_rectangle((left,y,right,y+155),radius=24,fill=PALE if i%2==0 else LIGHT,outline=accent,width=3)
         d.rounded_rectangle((left+18,y+30,left+88,y+100),radius=16,fill=accent); box(d,(left+18,y+45,left+88,y+90),str(i+1),WHITE,30,24,1,1,'center')
-        box(d,(left+115,y+35,right-30,y+125),it,GRAY,31,22,1,3)
-        y+=185
+        box(d,(left+115,y+35,right-30,y+125),it,GRAY,31,22,1,3); y+=185
     footer(d); save(im,p)
 def stop_slide(a,p):
     im=Image.new('RGB',(W,H),NAVY); d=ImageDraw.Draw(im); header(d,5,a['not_included_title'],True)
-    d.text((70,190),'DON’T ASSUME.',font=f(56,1),fill=GOLD); d.text((70,260),'VERIFY.',font=f(56,1),fill=WHITE)
-    y=395
+    d.text((70,190),'DON’T ASSUME.',font=f(56,1),fill=GOLD); d.text((70,260),'VERIFY.',font=f(56,1),fill=WHITE); y=395
     for it in a['not_included_items']:
         d.rounded_rectangle((80,y,1000,y+160),radius=24,fill=(20,48,84)); d.ellipse((110,y+45,180,y+115),fill=RED); box(d,(110,y+58,180,y+105),'×',WHITE,34,26,1,1,'center'); box(d,(215,y+40,950,y+125),it,WHITE,31,22,1,3); y+=190
     footer(d); save(im,p)
@@ -138,6 +133,17 @@ def main():
     if not mf.exists(): raise RuntimeError(f'Lesson {lesson} not generated')
     old=json.loads(mf.read_text()); topic=old['topic']; a=generate(lesson,topic)
     cover(lesson,topic,a,folder/'slide1.jpg'); slide2(lesson,a,folder/'slide2.jpg'); cards(3,a['included_title'],a['included_items'],folder/'slide3.jpg',GREEN); cards(4,a['expenses_title'],a['expense_items'],folder/'slide4.jpg',GOLD); stop_slide(a,folder/'slide5.jpg'); example(a,folder/'slide6.jpg'); final(a,folder/'slide7.jpg')
-    caption=a['caption'].rstrip()+'\n\n'+' '.join(a['hashtags']); old['caption']=caption; old['engagement_question']=a['engagement_question']; old['created_at']=datetime.now(timezone.utc).isoformat(); mf.write_text(json.dumps(old,indent=2),encoding='utf-8'); (folder/'caption.txt').write_text(caption,encoding='utf-8'); (folder/'enhanced_v2.json').write_text(json.dumps({'lesson':lesson,'visual_version':2,'topic':topic},indent=2),encoding='utf-8')
-    print(f'Refreshed Lesson {lesson} with varied visual layouts.')
+    stamp=datetime.now(timezone.utc)
+    version=stamp.strftime('%Y%m%d%H%M%S')
+    caption=a['caption'].rstrip()+'\n\n'+' '.join(a['hashtags'])
+    old['caption']=caption; old['engagement_question']=a['engagement_question']; old['created_at']=stamp.isoformat()
+    # Cache-bust every image URL so Instagram fetches the refreshed files instead of an older CDN copy.
+    for i,item in enumerate(old.get('files',[]),start=1):
+        if isinstance(item,dict) and item.get('photo'):
+            base=item['photo'].split('?',1)[0]
+            item['photo']=f'{base}?v={version}'
+    mf.write_text(json.dumps(old,indent=2),encoding='utf-8')
+    (folder/'caption.txt').write_text(caption,encoding='utf-8')
+    (folder/'enhanced_v2.json').write_text(json.dumps({'lesson':lesson,'visual_version':2,'topic':topic,'asset_version':version},indent=2),encoding='utf-8')
+    print(f'Refreshed Lesson {lesson} with varied visual layouts and versioned image URLs: {version}')
 if __name__=='__main__': main()
