@@ -280,13 +280,34 @@ wait_for_container(carousel_id)
 print("")
 print("Publishing carousel...")
 
-published = post(
-    f"{INSTAGRAM_USER_ID}/media_publish",
-    {
-        "creation_id": carousel_id,
-        "access_token": ACCESS_TOKEN,
-    },
-)
+# Instagram can report a carousel container as FINISHED a few seconds
+# before media_publish accepts its creation_id. Retry that specific
+# temporary condition instead of failing the whole scheduled lesson.
+published = None
+for publish_attempt in range(1, 7):
+    try:
+        published = post(
+            f"{INSTAGRAM_USER_ID}/media_publish",
+            {
+                "creation_id": carousel_id,
+                "access_token": ACCESS_TOKEN,
+            },
+        )
+        break
+    except urllib.error.HTTPError as e:
+        if e.code == 400 and publish_attempt < 6:
+            wait_seconds = 15 * publish_attempt
+            print(
+                f"Instagram has not made the finished carousel publishable yet. "
+                f"Retrying in {wait_seconds} seconds "
+                f"({publish_attempt}/6)..."
+            )
+            time.sleep(wait_seconds)
+            continue
+        raise
+
+if published is None:
+    raise RuntimeError("Instagram carousel could not be published after retries.")
 
 
 # -------------------------------------------------
