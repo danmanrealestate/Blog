@@ -14,7 +14,7 @@ INSTAGRAM_USER_ID = os.environ["INSTAGRAM_USER_ID"]
 LESSON_NUMBER = int(os.environ["LESSON_NUMBER"])
 
 API_VERSION = "v26.0"
-GRAPH_URL = f"https://graph.instagram.com/{API_VERSION}"
+GRAPH_URL = f"https://graph.facebook.com/{API_VERSION}"
 ROOT = Path(__file__).resolve().parents[1]
 
 
