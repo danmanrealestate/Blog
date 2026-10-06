@@ -10,7 +10,6 @@ import urllib.request
 from pathlib import Path
 
 SYSTEM_USER_ACCESS_TOKEN = os.environ["INSTAGRAM_ACCESS_TOKEN"]
-CONFIGURED_INSTAGRAM_USER_ID = os.environ["INSTAGRAM_USER_ID"]
 LESSON_NUMBER = int(os.environ["LESSON_NUMBER"])
 
 API_VERSION = "v26.0"
@@ -32,7 +31,7 @@ def get_json(endpoint, params):
 
 
 def resolve_page_context():
-    """Resolve the linked Instagram account and Page Access Token from the system-user token."""
+    """Resolve a publishable linked Instagram account and Page Access Token."""
     result = get_json(
         "me/accounts",
         {
@@ -41,25 +40,30 @@ def resolve_page_context():
         },
     )
     pages = result.get("data", [])
+    candidates = []
     for page in pages:
         ig = page.get("instagram_business_account") or {}
         ig_id = str(ig.get("id", ""))
         tasks = page.get("tasks") or []
-        if ig_id == str(CONFIGURED_INSTAGRAM_USER_ID):
-            if "CREATE_CONTENT" not in tasks:
-                raise RuntimeError(
-                    f"Linked Page {page.get('name')} does not grant CREATE_CONTENT to this token"
-                )
-            page_token = page.get("access_token")
-            if not page_token:
-                raise RuntimeError("Meta returned the linked Page but no Page Access Token")
-            print(f"Using linked Page: {page.get('name')} ({page.get('id')})")
-            print(f"Verified linked Instagram account: {ig_id}")
-            return ig_id, page_token
-    raise RuntimeError(
-        "Could not find the configured Instagram account through /me/accounts. "
-        "Check the Page/Instagram link and system-user Page permissions."
-    )
+        page_token = page.get("access_token")
+        if ig_id and "CREATE_CONTENT" in tasks and page_token:
+            candidates.append((page, ig_id, page_token))
+
+    if not candidates:
+        raise RuntimeError(
+            "Meta /me/accounts returned no Page with a linked Instagram account, "
+            "CREATE_CONTENT, and a Page Access Token."
+        )
+    if len(candidates) > 1:
+        names = ", ".join(f"{p.get('name')} -> {ig_id}" for p, ig_id, _ in candidates)
+        raise RuntimeError(
+            "Multiple publishable Instagram accounts were returned; refusing to guess: " + names
+        )
+
+    page, ig_id, page_token = candidates[0]
+    print(f"Using linked Page: {page.get('name')} ({page.get('id')})")
+    print(f"Using linked Instagram account: {ig_id}")
+    return ig_id, page_token
 
 
 INSTAGRAM_USER_ID, ACCESS_TOKEN = resolve_page_context()
