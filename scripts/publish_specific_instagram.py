@@ -9,13 +9,60 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-ACCESS_TOKEN = os.environ["INSTAGRAM_ACCESS_TOKEN"]
-INSTAGRAM_USER_ID = os.environ["INSTAGRAM_USER_ID"]
+SYSTEM_USER_ACCESS_TOKEN = os.environ["INSTAGRAM_ACCESS_TOKEN"]
+CONFIGURED_INSTAGRAM_USER_ID = os.environ["INSTAGRAM_USER_ID"]
 LESSON_NUMBER = int(os.environ["LESSON_NUMBER"])
 
 API_VERSION = "v26.0"
 GRAPH_URL = f"https://graph.facebook.com/{API_VERSION}"
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def get_json(endpoint, params):
+    query = urllib.parse.urlencode(params)
+    url = f"{GRAPH_URL}/{endpoint}?{query}"
+    try:
+        with urllib.request.urlopen(url, timeout=60) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", "ignore")
+        print(f"Instagram API error {e.code}:")
+        print(body)
+        raise
+
+
+def resolve_page_context():
+    """Resolve the linked Instagram account and Page Access Token from the system-user token."""
+    result = get_json(
+        "me/accounts",
+        {
+            "fields": "id,name,access_token,tasks,instagram_business_account",
+            "access_token": SYSTEM_USER_ACCESS_TOKEN,
+        },
+    )
+    pages = result.get("data", [])
+    for page in pages:
+        ig = page.get("instagram_business_account") or {}
+        ig_id = str(ig.get("id", ""))
+        tasks = page.get("tasks") or []
+        if ig_id == str(CONFIGURED_INSTAGRAM_USER_ID):
+            if "CREATE_CONTENT" not in tasks:
+                raise RuntimeError(
+                    f"Linked Page {page.get('name')} does not grant CREATE_CONTENT to this token"
+                )
+            page_token = page.get("access_token")
+            if not page_token:
+                raise RuntimeError("Meta returned the linked Page but no Page Access Token")
+            print(f"Using linked Page: {page.get('name')} ({page.get('id')})")
+            print(f"Verified linked Instagram account: {ig_id}")
+            return ig_id, page_token
+    raise RuntimeError(
+        "Could not find the configured Instagram account through /me/accounts. "
+        "Check the Page/Instagram link and system-user Page permissions."
+    )
+
+
+INSTAGRAM_USER_ID, ACCESS_TOKEN = resolve_page_context()
 
 
 def post(endpoint, data):
