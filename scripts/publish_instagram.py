@@ -6,11 +6,54 @@ import urllib.request
 import urllib.error
 from pathlib import Path
 
-ACCESS_TOKEN = os.environ["INSTAGRAM_ACCESS_TOKEN"]
-INSTAGRAM_USER_ID = os.environ["INSTAGRAM_USER_ID"]
+SYSTEM_USER_ACCESS_TOKEN = os.environ["INSTAGRAM_ACCESS_TOKEN"]
 
 API_VERSION = "v26.0"
-GRAPH_URL = f"https://graph.instagram.com/{API_VERSION}"
+GRAPH_URL = f"https://graph.facebook.com/{API_VERSION}"
+
+def get_json(endpoint, params):
+    query = urllib.parse.urlencode(params)
+    url = f"{GRAPH_URL}/{endpoint}?{query}"
+    try:
+        with urllib.request.urlopen(url, timeout=60) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", "ignore")
+        print(f"Instagram API error {e.code}:")
+        print(body)
+        raise
+
+def resolve_page_context():
+    """Resolve the single publishable linked Instagram account and Page token."""
+    result = get_json(
+        "me/accounts",
+        {
+            "fields": "id,name,access_token,tasks,instagram_business_account",
+            "access_token": SYSTEM_USER_ACCESS_TOKEN,
+        },
+    )
+    candidates = []
+    for page in result.get("data", []):
+        ig = page.get("instagram_business_account") or {}
+        ig_id = str(ig.get("id", ""))
+        tasks = page.get("tasks") or []
+        page_token = page.get("access_token")
+        if ig_id and "CREATE_CONTENT" in tasks and page_token:
+            candidates.append((page, ig_id, page_token))
+    if not candidates:
+        raise RuntimeError(
+            "Meta /me/accounts returned no Page with a linked Instagram account, "
+            "CREATE_CONTENT, and a Page Access Token."
+        )
+    if len(candidates) > 1:
+        names = ", ".join(f"{p.get('name')} -> {ig_id}" for p, ig_id, _ in candidates)
+        raise RuntimeError("Multiple publishable Instagram accounts returned: " + names)
+    page, ig_id, page_token = candidates[0]
+    print(f"Using linked Page: {page.get('name')} ({page.get('id')})")
+    print(f"Using linked Instagram account: {ig_id}")
+    return ig_id, page_token
+
+INSTAGRAM_USER_ID, ACCESS_TOKEN = resolve_page_context()
 
 INSTAGRAM_DIR = Path("instagram")
 STATE_FILE = INSTAGRAM_DIR / "publish_state.json"
