@@ -59,7 +59,9 @@ jobs:
 
       - name: Wait for generated images on GitHub Pages
         if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.lesson_number == '') }}
-        run: sleep 90
+        run: |
+          echo "Giving GitHub Pages time to start deployment. The resilient publisher will then verify every slide before contacting Instagram."
+          sleep 180
 
       - name: Publish specific lesson manually
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.lesson_number != '' }}
