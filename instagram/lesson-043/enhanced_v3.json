@@ -1,7 +1,18 @@
 {
   "lesson": 43,
-  "visual_version": 4,
-  "style": "illustrated-infographic",
-  "asset_version": "20261031025603",
-  "topic": "How to Evaluate a Small Industrial or Flex Property"
+  "visual_version": 3,
+  "topic": "How to Evaluate a Small Industrial or Flex Property",
+  "asset_version": "20261031032124",
+  "style": "photo-led-topic-specific",
+  "profile": {
+    "cover": "clean suburban industrial flex building with loading area and office entrance",
+    "motifs": [
+      "warehouse loading area",
+      "industrial flex exterior",
+      "interior warehouse aisle",
+      "office-to-warehouse connection",
+      "truck access and parking",
+      "industrial mechanical systems"
+    ]
+  }
 }
