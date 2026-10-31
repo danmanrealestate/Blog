@@ -52,13 +52,36 @@ jobs:
             git fetch origin main
             git pull --ff-only origin main
             marker="instagram/lesson-$(printf '%03d' "$n")/repost_completed.json"
-            if [ -f "$marker" ]; then
-              echo "Lesson $n previously reposted successfully; skipping to prevent duplicate."
+            if LESSON_NUMBER="$n" python - <<'PY'
+          import json,os
+          from pathlib import Path
+          n=int(os.environ["LESSON_NUMBER"])
+          folder=Path(f"instagram/lesson-{n:03d}")
+          version=json.loads((folder/"enhanced_v3.json").read_text())["asset_version"]
+          marker=folder/"repost_completed.json"
+          if marker.exists():
+              try:
+                  previous=json.loads(marker.read_text())
+                  if previous.get("asset_version")==version and previous.get("reposted"):
+                      print(f"Lesson {n} already reposted for photo version {version}; skip.")
+                      raise SystemExit(0)
+              except (ValueError,KeyError):
+                  pass
+          raise SystemExit(1)
+          PY
+            then
               continue
             fi
-            echo "Reposting lesson $n"
+            echo "Reposting updated photo lesson $n"
             LESSON_NUMBER="$n" python scripts/publish_specific_instagram.py
-            printf '{"lesson":%s,"reposted":true,"workflow":"repost-lessons-41-44"}\n' "$n" > "$marker"
+            LESSON_NUMBER="$n" python - <<'PY'
+          import json,os
+          from pathlib import Path
+          n=int(os.environ["LESSON_NUMBER"])
+          folder=Path(f"instagram/lesson-{n:03d}")
+          version=json.loads((folder/"enhanced_v3.json").read_text())["asset_version"]
+          (folder/"repost_completed.json").write_text(json.dumps({"lesson":n,"reposted":True,"asset_version":version,"workflow":"repost-lessons-41-44"},indent=2)+"\\n")
+          PY
             git config user.name "actions-user"
             git config user.email "actions@users.noreply.github.com"
             git add "$marker"
