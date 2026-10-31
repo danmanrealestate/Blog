@@ -1,4 +1,4 @@
-name: Rebuild Instagram Lessons 41-44 (No Publishing)
+name: Rebuild Lessons 41-44 With Real Property Photos (No Publishing)
 
 on:
   workflow_dispatch:
@@ -13,6 +13,7 @@ concurrency:
 jobs:
   rebuild:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - name: Sync latest main
@@ -23,16 +24,42 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install Pillow
-        run: pip install "Pillow>=10.0.0"
-      - name: Rebuild and validate four lessons
-        run: python scripts/rebuild_lessons_41_44.py
-      - name: Commit updated slide images and manifests
+      - name: Install dependencies
+        run: pip install -r requirements-instagram.txt
+      - name: Generate seven photographic slides for each lesson
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5-mini' }}
+          OPENAI_IMAGE_MODEL: gpt-image-1.5
+        run: |
+          set -e
+          for n in 41 42 43 44; do
+            echo "Generating photo-led Lesson $n"
+            LESSON_NUMBER="$n" python scripts/refresh_instagram_lesson_v3.py
+          done
+      - name: Verify 28 actual JPEGs and photo-led metadata
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from PIL import Image
+          for n in range(41,45):
+              folder=Path(f"instagram/lesson-{n:03d}")
+              d=json.loads((folder/"enhanced_v3.json").read_text())
+              assert d["style"]=="photo-led-topic-specific" and d["visual_version"]==3
+              for i in range(1,8):
+                  p=folder/f"slide{i}.jpg"
+                  with Image.open(p) as im:
+                      assert im.size==(1080,1350), (p,im.size)
+                      im.verify()
+              print(f"Verified Lesson {n}")
+          PY
+      - name: Commit photo-led lesson images
         run: |
           git config user.name "actions-user"
           git config user.email "actions@users.noreply.github.com"
           git add instagram/lesson-041 instagram/lesson-042 instagram/lesson-043 instagram/lesson-044
           git diff --cached --quiet && exit 0
-          git commit -m "Rebuild lessons 41-44 with educational infographics"
+          git commit -m "Restore photo-led visuals for Instagram lessons 41-44"
           git pull --rebase origin main
           git push origin main
