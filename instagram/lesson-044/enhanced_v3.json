@@ -1,18 +1,7 @@
 {
   "lesson": 44,
-  "visual_version": 3,
-  "topic": "How to Read a Commercial Rent Roll",
-  "asset_version": "20261030183343",
-  "style": "photo-led-topic-specific",
-  "profile": {
-    "cover": "active neighborhood retail center with a mix of occupied storefronts and one visibly vacant suite",
-    "motifs": [
-      "retail storefront tenant",
-      "professional office suite",
-      "lease documents on a desk",
-      "vacant commercial suite",
-      "mixed-use building",
-      "tenant interview or business space review"
-    ]
-  }
+  "visual_version": 4,
+  "style": "illustrated-infographic",
+  "asset_version": "20261031025603",
+  "topic": "How to Read a Commercial Rent Roll"
 }
