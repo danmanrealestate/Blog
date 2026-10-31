@@ -10,6 +10,10 @@ on:
   schedule:
     - cron: "10 13 * * 1,3,5"
 
+concurrency:
+  group: instagram-sequential-publisher
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -19,6 +23,12 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
+      - name: Synchronize with latest main before selecting lesson
+        run: |
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -38,7 +48,6 @@ jobs:
         run: |
           NEXT_LESSON=$(python -c 'import json; print(int(json.load(open("instagram/publish_state.json"))["last_published_lesson"]) + 1)')
           LESSON_DIR=$(printf "instagram/lesson-%03d" "$NEXT_LESSON")
-          git fetch origin main
           if git cat-file -e "origin/main:$LESSON_DIR/manifest.json" 2>/dev/null; then
             echo "Lesson $NEXT_LESSON already committed upstream; reusing existing assets."
             git show "origin/main:$LESSON_DIR/manifest.json" >/dev/null
