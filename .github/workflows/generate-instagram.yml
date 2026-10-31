@@ -43,16 +43,27 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5-mini' }}
-          OPENAI_IMAGE_MODEL: ${{ vars.OPENAI_IMAGE_MODEL || 'gpt-image-1' }}
+          OPENAI_IMAGE_MODEL: gpt-image-1.5
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           NEXT_LESSON=$(python -c 'import json; print(int(json.load(open("instagram/publish_state.json"))["last_published_lesson"]) + 1)')
           LESSON_DIR=$(printf "instagram/lesson-%03d" "$NEXT_LESSON")
-          if git cat-file -e "origin/main:$LESSON_DIR/manifest.json" 2>/dev/null; then
-            echo "Lesson $NEXT_LESSON already committed upstream; reusing existing assets."
-            git show "origin/main:$LESSON_DIR/manifest.json" >/dev/null
-          elif [ -f "$LESSON_DIR/manifest.json" ]; then
-            echo "Lesson $NEXT_LESSON already generated; reusing existing assets."
+          if [ -f "$LESSON_DIR/manifest.json" ]; then
+            python - "$NEXT_LESSON" <<'PY'
+          import json,sys
+          from pathlib import Path
+          n=int(sys.argv[1]); p=Path(f"instagram/lesson-{n:03d}/enhanced_v3.json")
+          try:
+              d=json.loads(p.read_text())
+              if d.get("style") != "photo-led-topic-specific" or d.get("visual_version") != 3:
+                  raise ValueError("Not photo-led")
+              print("Existing lesson has a photo-led marker; reusing existing assets.")
+          except (FileNotFoundError,ValueError,json.JSONDecodeError):
+              print("Existing lesson is not verified photo-led; rebuilding.")
+              import subprocess,os
+              env=os.environ.copy();env["LESSON_NUMBER"]=str(n)
+              subprocess.run(["python","scripts/refresh_instagram_lesson_v3.py"],env=env,check=True)
+          PY
           else
             python scripts/prepare_instagram_lesson.py
           fi
