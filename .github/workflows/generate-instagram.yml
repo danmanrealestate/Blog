@@ -38,7 +38,11 @@ jobs:
         run: |
           NEXT_LESSON=$(python -c 'import json; print(int(json.load(open("instagram/publish_state.json"))["last_published_lesson"]) + 1)')
           LESSON_DIR=$(printf "instagram/lesson-%03d" "$NEXT_LESSON")
-          if [ -f "$LESSON_DIR/manifest.json" ]; then
+          git fetch origin main
+          if git cat-file -e "origin/main:$LESSON_DIR/manifest.json" 2>/dev/null; then
+            echo "Lesson $NEXT_LESSON already committed upstream; reusing existing assets."
+            git show "origin/main:$LESSON_DIR/manifest.json" >/dev/null
+          elif [ -f "$LESSON_DIR/manifest.json" ]; then
             echo "Lesson $NEXT_LESSON already generated; reusing existing assets."
           else
             python scripts/prepare_instagram_lesson.py
