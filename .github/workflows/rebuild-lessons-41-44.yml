@@ -1,0 +1,38 @@
+name: Rebuild Instagram Lessons 41-44 (No Publishing)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: instagram-sequential-publisher
+  cancel-in-progress: false
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sync latest main
+        run: |
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Pillow
+        run: pip install "Pillow>=10.0.0"
+      - name: Rebuild and validate four lessons
+        run: python scripts/rebuild_lessons_41_44.py
+      - name: Commit updated slide images and manifests
+        run: |
+          git config user.name "actions-user"
+          git config user.email "actions@users.noreply.github.com"
+          git add instagram/lesson-041 instagram/lesson-042 instagram/lesson-043 instagram/lesson-044
+          git diff --cached --quiet && exit 0
+          git commit -m "Rebuild lessons 41-44 with educational infographics"
+          git pull --rebase origin main
+          git push origin main
