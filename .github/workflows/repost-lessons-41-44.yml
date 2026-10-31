@@ -33,7 +33,7 @@ jobs:
               folder=Path(f"instagram/lesson-{n:03d}")
               manifest=json.loads((folder/"manifest.json").read_text())
               marker=json.loads((folder/"enhanced_v3.json").read_text())
-              assert marker["visual_version"] == 4, f"Lesson {n} is not rebuilt"
+              assert marker["visual_version"] == 3 and marker["style"] == "photo-led-topic-specific", f"Lesson {n} has not been rebuilt with photos"
               assert len(manifest["files"]) == 7
               for i,item in enumerate(manifest["files"],1):
                   url=item["photo"]
