@@ -90,6 +90,7 @@ def make_photo(client,topic,scene,variation):
         return im.crop((x,y,x+W,y+H))
     except Exception as e:
         print('Image generation fallback:',e)
+        raise RuntimeError('Required commercial real estate photo generation failed; refusing to substitute generic graphics.') from e
         im=Image.new('RGB',(W,H),(28,38,50)); d=ImageDraw.Draw(im)
         for y in range(H):
             shade=int(28+35*y/H); d.line((0,y,W,y),fill=(shade,shade+8,shade+18))
